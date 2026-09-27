@@ -7,16 +7,10 @@ from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .const import (
-    CONF_AQUARIUM_NAME,
-    DOMAIN,
-    MANUAL_MEASUREMENTS,
-    VERSION,
-)
+from .const import CONF_AQUARIUM_NAME, DOMAIN, MANUAL_MEASUREMENTS, VERSION
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    """Set up manual Reef Control measurements."""
     async_add_entities(
         ReefControlManualMeasurement(entry, key, definition)
         for key, definition in MANUAL_MEASUREMENTS.items()
@@ -24,8 +18,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 
 class ReefControlManualMeasurement(NumberEntity, RestoreEntity):
-    """A manually entered water measurement with persistent history metadata."""
-
     _attr_has_entity_name = True
     _attr_mode = NumberMode.BOX
 
@@ -54,17 +46,14 @@ class ReefControlManualMeasurement(NumberEntity, RestoreEntity):
         )
 
     async def async_added_to_hass(self):
-        """Restore the last value and its measurement timestamp."""
         await super().async_added_to_hass()
         old_state = await self.async_get_last_state()
         if old_state is None:
             return
-
         try:
             self._attr_native_value = float(old_state.state)
         except (TypeError, ValueError):
             self._attr_native_value = None
-
         last_measurement = old_state.attributes.get("last_measurement")
         if last_measurement:
             try:
@@ -73,7 +62,6 @@ class ReefControlManualMeasurement(NumberEntity, RestoreEntity):
                 self._last_measurement = None
 
     async def async_set_native_value(self, value: float) -> None:
-        """Record a new manual measurement."""
         self._attr_native_value = float(value)
         self._last_measurement = datetime.now().astimezone()
         self.async_write_ha_state()
@@ -84,6 +72,7 @@ class ReefControlManualMeasurement(NumberEntity, RestoreEntity):
             return {
                 "last_measurement": None,
                 "measurement_age_days": None,
+                "measurement_freshness": "missing",
                 "manual_measurement": True,
             }
 
@@ -91,10 +80,18 @@ class ReefControlManualMeasurement(NumberEntity, RestoreEntity):
         measured = self._last_measurement
         if measured.tzinfo is None:
             measured = measured.astimezone()
-
         age_days = max(0, (now.date() - measured.date()).days)
+
+        if age_days <= 3:
+            freshness = "fresh"
+        elif age_days <= 7:
+            freshness = "aging"
+        else:
+            freshness = "stale"
+
         return {
             "last_measurement": measured.isoformat(),
             "measurement_age_days": age_days,
+            "measurement_freshness": freshness,
             "manual_measurement": True,
         }
