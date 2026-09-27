@@ -38,7 +38,8 @@
           "temperature_control": "Temperaturregelung",
           "reef_icp": "Reef ICP",
           "ato_control": "Wasserstandsregelung",
-          "equipment_control": "Techniksteuerung"
+          "equipment_control": "Techniksteuerung",
+          "safety_control": "Sicherheitssteuerung"
         }
       },
       "entities": {
@@ -231,7 +232,9 @@
           "return_master_uvc": "UV-C von Rückförderpumpe abhängig",
           "return_master_ato": "Nachfüllanlage von Rückförderpumpe abhängig",
           "equipment_skimmer_delay": "Abschäumer-Wiederanlaufverzögerung",
-          "equipment_uvc_delay": "UV-C-Wiederanlaufverzögerung"
+          "equipment_uvc_delay": "UV-C-Wiederanlaufverzögerung",
+          "return_master_flow": "Strömungspumpe von Rückförderpumpe abhängig",
+          "equipment_flow_delay": "Strömungspumpen-Wiederanlaufverzögerung"
         },
         "data_description": {
           "equipment_control_enabled": "Aktiviert die geräteübergreifende Sicherheits- und Wiederanlauflogik.",
@@ -239,7 +242,23 @@
           "return_master_uvc": "Schaltet UV-C aus, wenn keine Rückförderung vorhanden ist, und startet UV-C anschließend verzögert neu.",
           "return_master_ato": "Sperrt die Nachfüllpumpe bei ausgeschalteter Rückförderpumpe. Nach dem Wiederanlauf wird die automatische Wasserstandsregelung neu ausgewertet.",
           "equipment_skimmer_delay": "Wartezeit nach dem Start der Rückförderpumpe, bevor ein zuvor automatisch pausierter Abschäumer wieder eingeschaltet wird.",
-          "equipment_uvc_delay": "Wartezeit nach dem Start der Rückförderpumpe, bevor ein zuvor automatisch pausiertes UV-C-Gerät wieder eingeschaltet wird."
+          "equipment_uvc_delay": "Wartezeit nach dem Start der Rückförderpumpe, bevor ein zuvor automatisch pausiertes UV-C-Gerät wieder eingeschaltet wird.",
+          "return_master_flow": "Optional: Stoppt die Strömungspumpe zusammen mit der Rückförderpumpe und startet sie kontrolliert neu. Standardmäßig deaktiviert, da Strömung im Hauptbecken oft weiterlaufen soll.",
+          "equipment_flow_delay": "Wartezeit nach dem Start der Rückförderpumpe, bevor eine automatisch pausierte Strömungspumpe wieder startet."
+        }
+      },
+      "safety_control": {
+        "title": "Sicherheitssteuerung",
+        "description": "Zentrale Schutzfunktionen für das Aquarium. Sicherheitsregeln haben Vorrang vor normalen Laufzeiten und Regelungen.",
+        "data": {
+          "safety_control_enabled": "Sicherheitssteuerung aktivieren",
+          "safety_heater_high_temp": "Heizung bei kritischer Übertemperatur sofort ausschalten",
+          "safety_heater_sensor_fail": "Heizung bei Ausfall des Temperatursensors ausschalten"
+        },
+        "data_description": {
+          "safety_control_enabled": "Aktiviert die zentralen Schutzverriegelungen von Reef Control.",
+          "safety_heater_high_temp": "Überschreitet die Temperatur den unter Grenzwerte eingestellten kritischen Maximalwert, wird die Heizung ohne Mindestlaufzeit sofort ausgeschaltet.",
+          "safety_heater_sensor_fail": "Fail-Safe: Ist der konfigurierte Temperatursensor nicht verfügbar oder liefert keinen gültigen Wert, wird eine eingeschaltete Heizung ausgeschaltet."
         }
       }
     },
