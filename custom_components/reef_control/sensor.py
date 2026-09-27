@@ -21,6 +21,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         ReefControlParameterStatusSensor(hass,entry,"salinity"),
         ReefControlIcpConnectionSensor(hass,entry),
         ReefControlIcpSensor(hass,entry),
+        ReefControlWaterValuesSensor(hass,entry),
         ReefControlOverallStatusSensor(hass,entry),
     ])
 
@@ -239,6 +240,131 @@ def _icp_snapshot(hass, entry):
     }
 
 
+def _manual_measurement_snapshot(hass, entry):
+    """Collect Reef Control manual measurements from their number entities."""
+    registry = er.async_get(hass)
+    registry_entries = er.async_entries_for_config_entry(registry, entry.entry_id)
+    result = {}
+
+    for key, definition in MANUAL_MEASUREMENTS.items():
+        unique_id = f"{entry.entry_id}_manual_{key}"
+        state = None
+
+        for reg in registry_entries:
+            if reg.unique_id == unique_id:
+                state = hass.states.get(reg.entity_id)
+                break
+
+        item = {
+            "value": None,
+            "unit": definition["unit"],
+            "source": "manual",
+            "last_measurement": None,
+            "age_days": None,
+            "freshness": "missing",
+        }
+
+        if state is not None and state.state not in (STATE_UNKNOWN, STATE_UNAVAILABLE):
+            try:
+                item["value"] = float(str(state.state).replace(",", "."))
+            except (TypeError, ValueError):
+                item["value"] = None
+
+            item["last_measurement"] = state.attributes.get("last_measurement")
+            item["age_days"] = state.attributes.get("measurement_age_days")
+            item["freshness"] = state.attributes.get(
+                "measurement_freshness", "missing"
+            )
+
+        result[key] = item
+
+    return result
+
+
+class ReefControlWaterValuesSensor(ReefControlRuntimeSensor):
+    """Compact overview of manual reef measurements."""
+
+    _attr_name = "Wasserwerte"
+    _attr_icon = "mdi:water-check"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, hass, entry):
+        super().__init__(hass, entry)
+        self._attr_unique_id = f"{entry.entry_id}_water_values"
+
+    @property
+    def native_value(self):
+        values = _manual_measurement_snapshot(self.hass, self._entry)
+        measured = [item for item in values.values() if item["value"] is not None]
+
+        if not measured:
+            return "Keine Messwerte"
+
+        stale = sum(1 for item in measured if item["freshness"] == "stale")
+        aging = sum(1 for item in measured if item["freshness"] == "aging")
+
+        if stale:
+            return f"{stale} veraltet"
+        if aging:
+            return f"{aging} älter"
+        return "Aktuell"
+
+    @property
+    def extra_state_attributes(self):
+        values = _manual_measurement_snapshot(self.hass, self._entry)
+        measured = [
+            (key, item)
+            for key, item in values.items()
+            if item["value"] is not None
+        ]
+
+        latest = None
+        latest_dt = None
+        for key, item in measured:
+            raw = item.get("last_measurement")
+            if not raw:
+                continue
+            try:
+                parsed = datetime.fromisoformat(str(raw))
+            except (TypeError, ValueError):
+                continue
+
+            if latest_dt is None or parsed > latest_dt:
+                latest_dt = parsed
+                latest = {
+                    "parameter": MANUAL_MEASUREMENTS[key]["name"],
+                    "value": item["value"],
+                    "unit": item["unit"],
+                    "source": item["source"],
+                    "last_measurement": raw,
+                }
+
+        icp = _icp_snapshot(self.hass, self._entry)
+
+        return {
+            "measured_count": len(measured),
+            "fresh_count": sum(
+                1 for _, item in measured if item["freshness"] == "fresh"
+            ),
+            "aging_count": sum(
+                1 for _, item in measured if item["freshness"] == "aging"
+            ),
+            "stale_count": sum(
+                1 for _, item in measured if item["freshness"] == "stale"
+            ),
+            "latest_measurement": latest,
+            "values": values,
+            "reef_icp": {
+                "connected": icp.get("connected", False),
+                "aquarium": icp.get("aquarium"),
+                "provider": icp.get("provider"),
+                "analysis_date": icp.get("analysis_date"),
+                "analysis_age_days": icp.get("analysis_age_days"),
+                "status": icp.get("status"),
+            },
+        }
+
+
 class ReefControlIcpConnectionSensor(ReefControlRuntimeSensor):
     _attr_name="Reef ICP"
     _attr_entity_category=EntityCategory.DIAGNOSTIC
@@ -296,11 +422,18 @@ class ReefControlOverallStatusSensor(ReefControlRuntimeSensor):
         active=[v for v in vals if v!="Nicht konfiguriert"]
         snap=_icp_snapshot(self.hass,self._entry)
         icp=snap["status"] if snap["connected"] else "Nicht konfiguriert"
+        icp_age=snap.get("analysis_age_days")
+        icp_stale=icp_age is not None and icp_age > 90
+
         if not active and icp=="Nicht konfiguriert":
             return "Keine Messwerte"
-        if any(v.startswith("Kritisch") for v in active) or icp=="Kritisch":
+        if any(v.startswith("Kritisch") for v in active) or (
+            icp=="Kritisch" and not icp_stale
+        ):
             return "Kritisch"
-        if any(v in ("Zu niedrig","Zu hoch","Nicht verfügbar") for v in active) or icp in ("Auffällig","Nicht verfügbar"):
+        if any(v in ("Zu niedrig","Zu hoch","Nicht verfügbar") for v in active) or (
+            icp in ("Auffällig","Nicht verfügbar") and not icp_stale
+        ):
             return "Warnung"
         return "OK"
 
@@ -325,7 +458,9 @@ class ReefControlOverallStatusSensor(ReefControlRuntimeSensor):
             for param,status in results.items()
             if status not in ("Normal","Nicht konfiguriert")
         ]
-        if icp not in ("Gut","Nicht konfiguriert","Keine Analyse"):
+        icp_age=snap.get("analysis_age_days")
+        icp_stale=icp_age is not None and icp_age > 90
+        if icp not in ("Gut","Nicht konfiguriert","Keine Analyse") and not icp_stale:
             issues.append(f"ICP: {icp}")
 
         active_sources=sum(
@@ -343,6 +478,7 @@ class ReefControlOverallStatusSensor(ReefControlRuntimeSensor):
             "icp_provider":snap.get("provider"),
             "icp_analysis_date":snap.get("analysis_date"),
             "icp_analysis_age_days":snap.get("analysis_age_days"),
+            "icp_stale":icp_stale,
             "icp_issue_count":snap.get("issue_count",0),
             "active_status_sources":active_sources,
             "issue_count":len(issues),
