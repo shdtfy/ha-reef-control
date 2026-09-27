@@ -1,7 +1,7 @@
 """Constants for Reef Control."""
 
 DOMAIN = "reef_control"
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 
 DEFAULT_AQUARIUM_NAME = "My Reef"
 
