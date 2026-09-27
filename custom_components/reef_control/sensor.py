@@ -237,6 +237,7 @@ def _icp_snapshot(hass, entry):
         "analysis_age_days": analysis_age_days,
         "issue_count": issue_count,
         "affected": affected,
+        "measurements": attrs.get("measurements") or [],
     }
 
 
@@ -281,8 +282,140 @@ def _manual_measurement_snapshot(hass, entry):
     return result
 
 
+ICP_MEASUREMENT_KEYS = {
+    "kh": {"kh", "alkalinity", "carbonate_hardness"},
+    "calcium": {"calcium", "ca"},
+    "magnesium": {"magnesium", "mg"},
+    "nitrate": {"nitrate", "no3"},
+    "phosphate": {"phosphate", "po4", "phosphate_photometric"},
+}
+
+
+def _normalized_measurement_key(value):
+    return str(value or "").strip().lower().replace(" ", "_").replace("-", "_")
+
+
+def _icp_measurement_snapshot(hass, entry):
+    """Extract Reef Control core water values from the linked Reef ICP report."""
+    snap = _icp_snapshot(hass, entry)
+    result = {}
+
+    for key, definition in MANUAL_MEASUREMENTS.items():
+        result[key] = {
+            "value": None,
+            "unit": definition["unit"],
+            "source": "reef_icp",
+            "analysis_date": snap.get("analysis_date"),
+            "age_days": snap.get("analysis_age_days"),
+            "freshness": "missing",
+            "status": None,
+        }
+
+    if not snap.get("connected"):
+        return result
+
+    age = snap.get("analysis_age_days")
+    if age is None:
+        freshness = "unknown"
+    elif age <= 30:
+        freshness = "fresh"
+    elif age <= 90:
+        freshness = "aging"
+    else:
+        freshness = "stale"
+
+    aliases = {
+        alias: target
+        for target, alias_set in ICP_MEASUREMENT_KEYS.items()
+        for alias in alias_set
+    }
+
+    for measurement in snap.get("measurements") or []:
+        if not isinstance(measurement, dict):
+            continue
+
+        # Reef ICP may also contain RO/osmosis measurements. Reef Control's
+        # aquarium state must use only the aquarium sample here.
+        if str(measurement.get("category") or "").lower() == "osmosis":
+            continue
+
+        target = aliases.get(_normalized_measurement_key(measurement.get("key")))
+        if target is None:
+            target = aliases.get(_normalized_measurement_key(measurement.get("name")))
+        if target is None:
+            continue
+
+        value = measurement.get("value")
+        if isinstance(value, bool):
+            continue
+        try:
+            value = float(value)
+        except (TypeError, ValueError):
+            continue
+
+        status = measurement.get("status")
+        severity = status.get("severity") if isinstance(status, dict) else status
+
+        result[target] = {
+            "value": value,
+            "unit": measurement.get("unit") or MANUAL_MEASUREMENTS[target]["unit"],
+            "source": "reef_icp",
+            "analysis_date": snap.get("analysis_date"),
+            "age_days": age,
+            "freshness": freshness,
+            "status": severity,
+        }
+
+    return result
+
+
+def _preferred_water_values(hass, entry):
+    """Build one current value per parameter from manual and Reef ICP sources."""
+    manual = _manual_measurement_snapshot(hass, entry)
+    icp = _icp_measurement_snapshot(hass, entry)
+    merged = {}
+
+    for key in MANUAL_MEASUREMENTS:
+        manual_item = manual[key]
+        icp_item = icp[key]
+        manual_has = manual_item.get("value") is not None
+        icp_has = icp_item.get("value") is not None
+
+        # Current hand measurements are the most useful day-to-day source.
+        if manual_has and manual_item.get("freshness") in ("fresh", "aging"):
+            selected = dict(manual_item)
+            reason = "manual_current"
+        # If the hand measurement is stale but ICP is still current, use ICP.
+        elif icp_has and icp_item.get("freshness") in ("fresh", "aging"):
+            selected = dict(icp_item)
+            reason = "icp_current"
+        # Keep stale data visible as a fallback instead of losing information.
+        elif manual_has:
+            selected = dict(manual_item)
+            reason = "manual_fallback"
+        elif icp_has:
+            selected = dict(icp_item)
+            reason = "icp_fallback"
+        else:
+            selected = {
+                "value": None,
+                "unit": MANUAL_MEASUREMENTS[key]["unit"],
+                "source": None,
+                "age_days": None,
+                "freshness": "missing",
+            }
+            reason = "missing"
+
+        selected["selection_reason"] = reason
+        selected["manual"] = manual_item
+        selected["reef_icp"] = icp_item
+        merged[key] = selected
+
+    return merged
+
+
 class ReefControlWaterValuesSensor(ReefControlRuntimeSensor):
-    """Compact overview of manual reef measurements."""
+    """Unified overview of manual measurements and linked Reef ICP values."""
 
     _attr_name = "Wasserwerte"
     _attr_icon = "mdi:water-check"
@@ -294,14 +427,14 @@ class ReefControlWaterValuesSensor(ReefControlRuntimeSensor):
 
     @property
     def native_value(self):
-        values = _manual_measurement_snapshot(self.hass, self._entry)
-        measured = [item for item in values.values() if item["value"] is not None]
+        values = _preferred_water_values(self.hass, self._entry)
+        available = [item for item in values.values() if item.get("value") is not None]
 
-        if not measured:
+        if not available:
             return "Keine Messwerte"
 
-        stale = sum(1 for item in measured if item["freshness"] == "stale")
-        aging = sum(1 for item in measured if item["freshness"] == "aging")
+        stale = sum(1 for item in available if item.get("freshness") == "stale")
+        aging = sum(1 for item in available if item.get("freshness") == "aging")
 
         if stale:
             return f"{stale} veraltet"
@@ -311,57 +444,35 @@ class ReefControlWaterValuesSensor(ReefControlRuntimeSensor):
 
     @property
     def extra_state_attributes(self):
-        values = _manual_measurement_snapshot(self.hass, self._entry)
-        measured = [
-            (key, item)
+        values = _preferred_water_values(self.hass, self._entry)
+        available = {
+            key: item
             for key, item in values.items()
-            if item["value"] is not None
-        ]
-
-        latest = None
-        latest_dt = None
-        for key, item in measured:
-            raw = item.get("last_measurement")
-            if not raw:
-                continue
-            try:
-                parsed = datetime.fromisoformat(str(raw))
-            except (TypeError, ValueError):
-                continue
-
-            if latest_dt is None or parsed > latest_dt:
-                latest_dt = parsed
-                latest = {
-                    "parameter": MANUAL_MEASUREMENTS[key]["name"],
-                    "value": item["value"],
-                    "unit": item["unit"],
-                    "source": item["source"],
-                    "last_measurement": raw,
-                }
-
-        icp = _icp_snapshot(self.hass, self._entry)
+            if item.get("value") is not None
+        }
 
         return {
-            "measured_count": len(measured),
+            "available_count": len(available),
             "fresh_count": sum(
-                1 for _, item in measured if item["freshness"] == "fresh"
+                1 for item in available.values() if item.get("freshness") == "fresh"
             ),
             "aging_count": sum(
-                1 for _, item in measured if item["freshness"] == "aging"
+                1 for item in available.values() if item.get("freshness") == "aging"
             ),
             "stale_count": sum(
-                1 for _, item in measured if item["freshness"] == "stale"
+                1 for item in available.values() if item.get("freshness") == "stale"
             ),
-            "latest_measurement": latest,
+            "manual_source_count": sum(
+                1 for item in available.values() if item.get("source") == "manual"
+            ),
+            "reef_icp_source_count": sum(
+                1 for item in available.values() if item.get("source") == "reef_icp"
+            ),
             "values": values,
-            "reef_icp": {
-                "connected": icp.get("connected", False),
-                "aquarium": icp.get("aquarium"),
-                "provider": icp.get("provider"),
-                "analysis_date": icp.get("analysis_date"),
-                "analysis_age_days": icp.get("analysis_age_days"),
-                "status": icp.get("status"),
-            },
+            "source_priority": (
+                "manual_current > reef_icp_current > "
+                "manual_fallback > reef_icp_fallback"
+            ),
         }
 
 
