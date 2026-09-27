@@ -21,8 +21,8 @@
   "options": {
     "step": {
       "init": {
-        "title": "Aquarium-Entitäten & Fütterungsmodus",
-        "description": "Ordne vorhandene Home-Assistant-Entitäten zu und konfiguriere den Fütterungsmodus. Alle Entitätszuordnungen sind optional.",
+        "title": "Aquarium-Entitäten & Betriebsmodi",
+        "description": "Ordne vorhandene Home-Assistant-Entitäten zu und konfiguriere Fütterungs- und Wartungsmodus. Alle Entitätszuordnungen sind optional.",
         "data": {
           "temperature_entity": "Temperatur",
           "ph_entity": "pH-Wert",
@@ -30,6 +30,7 @@
           "skimmer_entity": "Abschäumer",
           "return_pump_entity": "Rückförderpumpe",
           "flow_pump_entity": "Strömungspumpe",
+          "uvc_entity": "UV-C",
           "light_entity": "Aquariumbeleuchtung",
           "heater_entity": "Heizung",
           "ato_entity": "Nachfüllanlage (ATO)",
@@ -38,7 +39,15 @@
           "feeding_pause_skimmer": "Abschäumer beim Füttern pausieren",
           "feeding_pause_return_pump": "Rückförderpumpe beim Füttern pausieren",
           "feeding_pause_flow_pump": "Strömungspumpe beim Füttern pausieren",
-          "feeding_pause_ato": "Nachfüllanlage beim Füttern pausieren"
+          "feeding_pause_uvc": "UV-C beim Füttern pausieren",
+          "feeding_pause_ato": "Nachfüllanlage beim Füttern pausieren",
+          "maintenance_pause_skimmer": "Abschäumer bei Wartung pausieren",
+          "maintenance_pause_return_pump": "Rückförderpumpe bei Wartung pausieren",
+          "maintenance_pause_flow_pump": "Strömungspumpe bei Wartung pausieren",
+          "maintenance_pause_uvc": "UV-C bei Wartung pausieren",
+          "maintenance_pause_ato": "Nachfüllanlage bei Wartung pausieren",
+          "maintenance_pause_heater": "Heizung bei Wartung pausieren",
+          "maintenance_pause_light": "Aquariumbeleuchtung bei Wartung pausieren"
         }
       }
     }
