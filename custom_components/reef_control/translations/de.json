@@ -127,5 +127,24 @@
     "error": {
       "invalid_limits": "Grenzwerte prüfen: kritisch min. ≤ normal min. < normal max. ≤ kritisch max."
     }
+  },
+  "entity": {
+    "number": {
+      "manual_kh": {
+        "name": "KH"
+      },
+      "manual_calcium": {
+        "name": "Calcium"
+      },
+      "manual_magnesium": {
+        "name": "Magnesium"
+      },
+      "manual_nitrate": {
+        "name": "Nitrat"
+      },
+      "manual_phosphate": {
+        "name": "Phosphat"
+      }
+    }
   }
 }
