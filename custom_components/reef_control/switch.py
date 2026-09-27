@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime, timedelta
 from homeassistant.components.switch import SwitchEntity
-from homeassistant.const import STATE_ON, STATE_UNAVAILABLE, STATE_UNKNOWN
+from homeassistant.const import STATE_ON, STATE_OFF, STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.event import async_track_state_change_event
 from .const import *
@@ -96,39 +96,116 @@ class ReefControlTemperatureControlSwitch(ReefControlBaseSwitch):
         super().__init__(hass,entry); self._attr_unique_id=f"{entry.entry_id}_temperature_control"
         self._is_on=bool(entry.options.get(CONF_TEMPERATURE_CONTROL_ENABLED,DEFAULT_TEMPERATURE_CONTROL_ENABLED))
         self._remove_listener=None; self._last_temperature=None; self._last_action="Deaktiviert"
+        self._last_switch_at=None; self._last_switch_action=None; self._pending_task=None
+
     async def async_added_to_hass(self):
         sensor=self._entry.options.get(CONF_TEMPERATURE_ENTITY)
         if sensor:self._remove_listener=async_track_state_change_event(self.hass,[sensor],self._temperature_changed)
         if self._is_on:await self.async_evaluate()
+
     async def async_will_remove_from_hass(self):
         if self._remove_listener:self._remove_listener(); self._remove_listener=None
+        self._cancel_pending()
+
     async def _temperature_changed(self,event):
         if self._is_on:await self.async_evaluate()
+
     async def async_turn_on(self,**kwargs):
         self._is_on=True; self.async_write_ha_state(); await self.async_evaluate()
+
     async def async_turn_off(self,**kwargs):
-        self._is_on=False; self._set_status("Deaktiviert")
+        self._is_on=False; self._cancel_pending(); self._set_status("Deaktiviert")
+
+    def _cancel_pending(self):
+        if self._pending_task and not self._pending_task.done():self._pending_task.cancel()
+        self._pending_task=None
+
     def _set_status(self,status):
         self._last_action=status; self._runtime()["temperature_control_status"]=status; self.async_write_ha_state()
+
+    def _heater_state(self,heater_id):
+        state=self.hass.states.get(heater_id)
+        if state is None:return "missing"
+        if state.state in (STATE_UNKNOWN,STATE_UNAVAILABLE):return state.state
+        return state.state
+
+    def _remaining_lockout(self,want_on):
+        if not self._last_switch_at:return 0
+        minutes=float(self._entry.options.get(
+            CONF_TEMPERATURE_MIN_OFF_TIME if want_on else CONF_TEMPERATURE_MIN_ON_TIME,
+            DEFAULT_TEMPERATURE_MIN_OFF_TIME if want_on else DEFAULT_TEMPERATURE_MIN_ON_TIME,
+        ))
+        elapsed=(datetime.now().astimezone()-self._last_switch_at).total_seconds()
+        return max(0,minutes*60-elapsed)
+
+    async def _switch_heater(self,heater_id,on):
+        await self._set(heater_id,on)
+        self._last_switch_at=datetime.now().astimezone()
+        self._last_switch_action="EIN" if on else "AUS"
+
+    async def _delayed_evaluate(self,seconds):
+        try:
+            await asyncio.sleep(seconds)
+            self._pending_task=None
+            if self._is_on:await self.async_evaluate()
+        except asyncio.CancelledError:
+            pass
+
     async def async_evaluate(self):
+        self._cancel_pending()
         if not self._is_on:self._set_status("Deaktiviert"); return
+
         sensor_id=self._entry.options.get(CONF_TEMPERATURE_ENTITY); heater_id=self._entry.options.get(CONF_HEATER_ENTITY)
         if not sensor_id or not heater_id:self._set_status("Nicht konfiguriert"); return
         if self._runtime().get("maintenance_active"):self._set_status("Pausiert"); return
+
         state=self.hass.states.get(sensor_id)
-        if state is None or state.state in (STATE_UNKNOWN,STATE_UNAVAILABLE):self._set_status("Sensorfehler"); return
+        if state is None or state.state in (STATE_UNKNOWN,STATE_UNAVAILABLE):
+            self._set_status("Sensorfehler"); return
         try:temperature=float(str(state.state).replace(",","."))
-        except (TypeError,ValueError):self._set_status("Sensorfehler"); return
+        except (TypeError,ValueError):
+            self._set_status("Sensorfehler"); return
+
         self._last_temperature=temperature
-        target=float(self._entry.options.get(CONF_TEMPERATURE_TARGET,DEFAULT_TEMPERATURE_TARGET)); hysteresis=float(self._entry.options.get(CONF_TEMPERATURE_HYSTERESIS,DEFAULT_TEMPERATURE_HYSTERESIS)); heater=self.hass.states.get(heater_id)
-        if temperature<=target-hysteresis:
-            if heater and heater.state!=STATE_ON:await self._set(heater_id,True)
-            self._set_status("Heizen")
-        elif temperature>=target:
-            if heater and heater.state==STATE_ON:await self._set(heater_id,False)
-            self._set_status("Sollbereich")
-        else:self._set_status("Heizen" if heater and heater.state==STATE_ON else "Sollbereich")
+        heater_state=self._heater_state(heater_id)
+        if heater_state in ("missing",STATE_UNKNOWN,STATE_UNAVAILABLE):
+            self._set_status("Heizungsfehler"); return
+
+        target=float(self._entry.options.get(CONF_TEMPERATURE_TARGET,DEFAULT_TEMPERATURE_TARGET))
+        hysteresis=float(self._entry.options.get(CONF_TEMPERATURE_HYSTERESIS,DEFAULT_TEMPERATURE_HYSTERESIS))
+
+        want_on=None
+        if temperature<=target-hysteresis and heater_state!=STATE_ON:want_on=True
+        elif temperature>=target and heater_state==STATE_ON:want_on=False
+
+        if want_on is not None:
+            remaining=self._remaining_lockout(want_on)
+            if remaining>0:
+                self._set_status("Warte auf Mindestpause")
+                self._pending_task=self.hass.async_create_task(self._delayed_evaluate(remaining))
+                return
+            await self._switch_heater(heater_id,want_on)
+            heater_state=STATE_ON if want_on else STATE_OFF
+
+        self._set_status("Heizen" if heater_state==STATE_ON else "Sollbereich")
+
     @property
     def extra_state_attributes(self):
-        target=float(self._entry.options.get(CONF_TEMPERATURE_TARGET,DEFAULT_TEMPERATURE_TARGET)); hysteresis=float(self._entry.options.get(CONF_TEMPERATURE_HYSTERESIS,DEFAULT_TEMPERATURE_HYSTERESIS))
-        return {"status":self._last_action,"temperature":self._last_temperature,"target":target,"heating_on_below":round(target-hysteresis,2),"heating_off_at":target,"hysteresis":hysteresis,"temperature_entity":self._entry.options.get(CONF_TEMPERATURE_ENTITY),"heater_entity":self._entry.options.get(CONF_HEATER_ENTITY)}
+        target=float(self._entry.options.get(CONF_TEMPERATURE_TARGET,DEFAULT_TEMPERATURE_TARGET))
+        hysteresis=float(self._entry.options.get(CONF_TEMPERATURE_HYSTERESIS,DEFAULT_TEMPERATURE_HYSTERESIS))
+        heater_id=self._entry.options.get(CONF_HEATER_ENTITY)
+        return {
+            "status":self._last_action,
+            "temperature":self._last_temperature,
+            "target":target,
+            "heating_on_below":round(target-hysteresis,2),
+            "heating_off_at":target,
+            "hysteresis":hysteresis,
+            "temperature_entity":self._entry.options.get(CONF_TEMPERATURE_ENTITY),
+            "heater_entity":heater_id,
+            "heater_state":self._heater_state(heater_id) if heater_id else "not_configured",
+            "last_switch_action":self._last_switch_action,
+            "last_switch_at":self._last_switch_at.isoformat() if self._last_switch_at else None,
+            "minimum_on_minutes":float(self._entry.options.get(CONF_TEMPERATURE_MIN_ON_TIME,DEFAULT_TEMPERATURE_MIN_ON_TIME)),
+            "minimum_off_minutes":float(self._entry.options.get(CONF_TEMPERATURE_MIN_OFF_TIME,DEFAULT_TEMPERATURE_MIN_OFF_TIME)),
+        }

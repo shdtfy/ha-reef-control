@@ -1,7 +1,7 @@
 """Constants for Reef Control."""
 
 DOMAIN = "reef_control"
-VERSION = "0.4.0"
+VERSION = "0.4.1"
 
 DEFAULT_AQUARIUM_NAME = "My Reef"
 
@@ -55,9 +55,13 @@ CONF_ATO_ENTITY = "ato_entity"
 CONF_TEMPERATURE_CONTROL_ENABLED = "temperature_control_enabled"
 CONF_TEMPERATURE_TARGET = "temperature_target"
 CONF_TEMPERATURE_HYSTERESIS = "temperature_hysteresis"
+CONF_TEMPERATURE_MIN_ON_TIME = "temperature_min_on_time"
+CONF_TEMPERATURE_MIN_OFF_TIME = "temperature_min_off_time"
 DEFAULT_TEMPERATURE_CONTROL_ENABLED = False
 DEFAULT_TEMPERATURE_TARGET = 25.0
 DEFAULT_TEMPERATURE_HYSTERESIS = 0.3
+DEFAULT_TEMPERATURE_MIN_ON_TIME = 2
+DEFAULT_TEMPERATURE_MIN_OFF_TIME = 2
 
 CONF_FEEDING_DURATION = "feeding_duration"
 CONF_SKIMMER_DELAY = "skimmer_delay"

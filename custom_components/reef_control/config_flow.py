@@ -59,6 +59,8 @@ class ReefControlOptionsFlow(config_entries.OptionsFlow):
         fields={vol.Optional(CONF_TEMPERATURE_CONTROL_ENABLED,default=self._options.get(CONF_TEMPERATURE_CONTROL_ENABLED,DEFAULT_TEMPERATURE_CONTROL_ENABLED)):bool}
         key,value=self._number(CONF_TEMPERATURE_TARGET,DEFAULT_TEMPERATURE_TARGET,15,35,0.1,"°C"); fields[key]=value
         key,value=self._number(CONF_TEMPERATURE_HYSTERESIS,DEFAULT_TEMPERATURE_HYSTERESIS,0.1,2.0,0.1,"°C"); fields[key]=value
+        key,value=self._number(CONF_TEMPERATURE_MIN_ON_TIME,DEFAULT_TEMPERATURE_MIN_ON_TIME,0,30,1,"min"); fields[key]=value
+        key,value=self._number(CONF_TEMPERATURE_MIN_OFF_TIME,DEFAULT_TEMPERATURE_MIN_OFF_TIME,0,30,1,"min"); fields[key]=value
         return self.async_show_form(step_id="temperature_control",data_schema=vol.Schema(fields))
     async def async_step_reef_icp(self,user_input=None)->FlowResult:
         if user_input is not None:
