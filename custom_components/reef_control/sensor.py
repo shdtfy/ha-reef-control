@@ -1,11 +1,14 @@
 """Sensor platform for Reef Control."""
 from __future__ import annotations
 from datetime import datetime, timedelta
+
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers import entity_registry as er
 from homeassistant.core import callback
+
 from .const import *
 
 async def async_setup_entry(hass, entry, async_add_entities):
@@ -15,6 +18,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         ReefControlParameterStatusSensor(hass,entry,"temperature"),
         ReefControlParameterStatusSensor(hass,entry,"ph"),
         ReefControlParameterStatusSensor(hass,entry,"salinity"),
+        ReefControlIcpSensor(hass,entry),
         ReefControlOverallStatusSensor(hass,entry),
     ])
 
@@ -102,6 +106,75 @@ class ReefControlParameterStatusSensor(ReefControlRuntimeSensor):
         if status=="Normal": return PARAMS[self.param][2]
         return "mdi:help-circle-outline"
 
+def _icp_snapshot(hass, entry):
+    selected = entry.options.get(CONF_REEF_ICP_ENTRY)
+    if not selected:
+        return {"status":"Nicht konfiguriert","measurements":{}}
+    icp_entry = hass.config_entries.async_get_entry(selected)
+    if icp_entry is None:
+        return {"status":"Nicht verfügbar","measurements":{}}
+
+    registry = er.async_get(hass)
+    registry_entries = er.async_entries_for_config_entry(registry, selected)
+    measurements = {}
+    provider = None
+    analysis_date = None
+    analysis_number = None
+    signals = []
+
+    for reg in registry_entries:
+        state = hass.states.get(reg.entity_id)
+        if state is None or state.state in (STATE_UNKNOWN, STATE_UNAVAILABLE):
+            continue
+        attrs = state.attributes
+        name = attrs.get("friendly_name") or reg.original_name or reg.entity_id
+        measurements[name] = {
+            "entity_id": reg.entity_id,
+            "state": state.state,
+            "unit": attrs.get("unit_of_measurement"),
+        }
+        provider = provider or attrs.get("provider") or attrs.get("laboratory") or attrs.get("lab")
+        analysis_date = analysis_date or attrs.get("analysis_date") or attrs.get("sample_date") or attrs.get("date")
+        analysis_number = analysis_number or attrs.get("analysis_number") or attrs.get("analysis_id")
+        for key in ("status","evaluation","rating","assessment"):
+            value = attrs.get(key)
+            if value is not None:
+                signals.append(str(value).lower())
+        signals.append(str(state.state).lower())
+
+    critical_words=("kritisch","critical","danger","alarm")
+    warning_words=("warnung","warning","zu hoch","zu niedrig","high","low","auffällig","attention")
+    if not measurements:
+        status="Keine Analyse"
+    elif any(any(w in s for w in critical_words) for s in signals):
+        status="Kritisch"
+    elif any(any(w in s for w in warning_words) for s in signals):
+        status="Auffällig"
+    else:
+        status="Gut"
+
+    return {
+        "status":status,
+        "entry_id":selected,
+        "aquarium":icp_entry.title,
+        "provider":provider,
+        "analysis_date":analysis_date,
+        "analysis_number":analysis_number,
+        "measurements":measurements,
+    }
+
+class ReefControlIcpSensor(ReefControlRuntimeSensor):
+    _attr_name="ICP"
+    _attr_icon="mdi:flask-outline"
+    def __init__(self,hass,entry):
+        super().__init__(hass,entry); self._attr_unique_id=f"{entry.entry_id}_reef_icp"
+    @property
+    def native_value(self): return _icp_snapshot(self.hass,self._entry)["status"]
+    @property
+    def extra_state_attributes(self):
+        snap=_icp_snapshot(self.hass,self._entry)
+        return {k:v for k,v in snap.items() if k!="status"}
+
 class ReefControlOverallStatusSensor(ReefControlRuntimeSensor):
     _attr_name="Gesamtstatus"
     def __init__(self,hass,entry): super().__init__(hass,entry); self._attr_unique_id=f"{entry.entry_id}_overall_status"
@@ -109,12 +182,16 @@ class ReefControlOverallStatusSensor(ReefControlRuntimeSensor):
     @property
     def native_value(self):
         vals=list(self._results().values()); active=[v for v in vals if v!="Nicht konfiguriert"]
-        if not active:return "Keine Messwerte"
-        if any(v.startswith("Kritisch") for v in active):return "Kritisch"
-        if any(v in ("Zu niedrig","Zu hoch","Nicht verfügbar") for v in active):return "Warnung"
+        icp=_icp_snapshot(self.hass,self._entry)["status"]
+        if not active and icp=="Nicht konfiguriert":return "Keine Messwerte"
+        if any(v.startswith("Kritisch") for v in active) or icp=="Kritisch":return "Kritisch"
+        if any(v in ("Zu niedrig","Zu hoch","Nicht verfügbar") for v in active) or icp in ("Auffällig","Nicht verfügbar"):return "Warnung"
         return "OK"
     @property
     def icon(self): return {"OK":"mdi:check-circle","Warnung":"mdi:alert","Kritisch":"mdi:alert-octagon","Keine Messwerte":"mdi:gauge-empty"}.get(self.native_value,"mdi:gauge")
     @property
     def extra_state_attributes(self):
-        results=self._results(); return {"temperature":results["temperature"],"ph":results["ph"],"salinity":results["salinity"],"issues":[f"{p}: {s}" for p,s in results.items() if s not in ("Normal","Nicht konfiguriert")]}
+        results=self._results(); icp=_icp_snapshot(self.hass,self._entry)["status"]
+        issues=[f"{p}: {s}" for p,s in results.items() if s not in ("Normal","Nicht konfiguriert")]
+        if icp not in ("Gut","Nicht konfiguriert","Keine Analyse"): issues.append(f"ICP: {icp}")
+        return {"temperature":results["temperature"],"ph":results["ph"],"salinity":results["salinity"],"icp":icp,"issues":issues}
