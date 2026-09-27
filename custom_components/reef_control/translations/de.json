@@ -27,7 +27,8 @@
           "entities": "Geräte & Entitäten",
           "water_values": "Wasserwerte",
           "limits": "Grenzwerte",
-          "operating_modes": "Betriebsmodi"
+          "operating_modes": "Betriebsmodi",
+          "reef_icp": "Reef ICP"
         }
       },
       "entities": {
@@ -51,6 +52,17 @@
           "ph_entity": "pH",
           "salinity_entity": "Salinität"
         }
+      },
+      "reef_icp": {
+        "title": "Reef ICP",
+        "description": "Verknüpfe dieses Reef-Control-Aquarium mit einem Aquarium aus Reef ICP. Die aktuelle ICP-Analyse wird anschließend in Reef Control berücksichtigt.",
+        "data": {
+          "reef_icp_entry": "Reef-ICP-Aquarium"
+        }
+      },
+      "reef_icp_unavailable": {
+        "title": "Reef ICP",
+        "description": "Es wurde kein Reef-ICP-Aquarium gefunden. Installiere und konfiguriere zuerst Reef ICP."
       },
       "limits": {
         "title": "Grenzwerte",
