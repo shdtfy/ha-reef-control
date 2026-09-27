@@ -127,5 +127,24 @@
     "error": {
       "invalid_limits": "Check the limits: critical minimum ≤ normal minimum < normal maximum ≤ critical maximum."
     }
+  },
+  "entity": {
+    "number": {
+      "manual_kh": {
+        "name": "Alkalinity"
+      },
+      "manual_calcium": {
+        "name": "Calcium"
+      },
+      "manual_magnesium": {
+        "name": "Magnesium"
+      },
+      "manual_nitrate": {
+        "name": "Nitrate"
+      },
+      "manual_phosphate": {
+        "name": "Phosphate"
+      }
+    }
   }
 }

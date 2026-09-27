@@ -34,7 +34,7 @@ class ReefControlManualMeasurement(NumberEntity, RestoreEntity):
         self._key = key
         self._definition = definition
         self._attr_unique_id = f"{entry.entry_id}_manual_{key}"
-        self._attr_name = definition["name"]
+        self._attr_translation_key = f"manual_{key}"
         self._attr_icon = definition["icon"]
         self._attr_native_unit_of_measurement = definition["unit"]
         self._attr_native_min_value = definition["min"]
