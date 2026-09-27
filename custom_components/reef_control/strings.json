@@ -21,8 +21,8 @@
   "options": {
     "step": {
       "init": {
-        "title": "Assign aquarium entities & feeding mode",
-        "description": "Assign Home Assistant entities and configure feeding mode. All entity assignments are optional.",
+        "title": "Aquarium entities & operating modes",
+        "description": "Assign Home Assistant entities and configure feeding and maintenance mode. All entity assignments are optional.",
         "data": {
           "temperature_entity": "Temperature",
           "ph_entity": "pH",
@@ -30,15 +30,24 @@
           "skimmer_entity": "Protein skimmer",
           "return_pump_entity": "Return pump",
           "flow_pump_entity": "Flow pump",
+          "uvc_entity": "UV-C sterilizer",
           "light_entity": "Aquarium lighting",
           "heater_entity": "Heater",
           "ato_entity": "Auto top-off (ATO)",
           "feeding_duration": "Feeding duration",
           "skimmer_delay": "Skimmer restart delay",
-          "feeding_pause_skimmer": "Pause protein skimmer",
-          "feeding_pause_return_pump": "Pause return pump",
-          "feeding_pause_flow_pump": "Pause flow pump",
-          "feeding_pause_ato": "Pause auto top-off (ATO)"
+          "feeding_pause_skimmer": "Pause protein skimmer during feeding",
+          "feeding_pause_return_pump": "Pause return pump during feeding",
+          "feeding_pause_flow_pump": "Pause flow pump during feeding",
+          "feeding_pause_uvc": "Pause UV-C during feeding",
+          "feeding_pause_ato": "Pause auto top-off during feeding",
+          "maintenance_pause_skimmer": "Pause protein skimmer during maintenance",
+          "maintenance_pause_return_pump": "Pause return pump during maintenance",
+          "maintenance_pause_flow_pump": "Pause flow pump during maintenance",
+          "maintenance_pause_uvc": "Pause UV-C during maintenance",
+          "maintenance_pause_ato": "Pause auto top-off during maintenance",
+          "maintenance_pause_heater": "Pause heater during maintenance",
+          "maintenance_pause_light": "Pause aquarium lighting during maintenance"
         }
       }
     }

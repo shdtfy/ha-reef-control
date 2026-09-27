@@ -31,8 +31,8 @@ async def async_setup_entry(
     async_add_entities(
         [
             ReefControlAquariumSensor(entry),
-            ReefControlFeedingStatusSensor(hass, entry),
-            ReefControlFeedingRemainingSensor(hass, entry),
+            ReefControlOperatingStatusSensor(hass, entry),
+            ReefControlRemainingTimeSensor(hass, entry),
         ]
     )
 
@@ -81,8 +81,8 @@ class ReefControlAquariumSensor(ReefControlBaseSensor):
         }
 
 
-class ReefControlFeedingBaseSensor(ReefControlBaseSensor):
-    """Base sensor reading feeding runtime data."""
+class ReefControlRuntimeSensor(ReefControlBaseSensor):
+    """Base sensor reading Reef Control runtime data."""
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         super().__init__(entry)
@@ -95,7 +95,9 @@ class ReefControlFeedingBaseSensor(ReefControlBaseSensor):
             self.async_write_ha_state()
 
         self._remove_interval = async_track_time_interval(
-            self.hass, _update, timedelta(seconds=1)
+            self.hass,
+            _update,
+            timedelta(seconds=1),
         )
 
     async def async_will_remove_from_hass(self) -> None:
@@ -107,10 +109,8 @@ class ReefControlFeedingBaseSensor(ReefControlBaseSensor):
         return self.hass.data.get(DOMAIN, {}).get(self._entry.entry_id, {})
 
 
-class ReefControlFeedingStatusSensor(ReefControlFeedingBaseSensor):
-    """Show the current operating status."""
-
-    _attr_icon = "mdi:information-outline"
+class ReefControlOperatingStatusSensor(ReefControlRuntimeSensor):
+    """Show the current Reef Control operating status."""
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         super().__init__(hass, entry)
@@ -120,15 +120,32 @@ class ReefControlFeedingStatusSensor(ReefControlFeedingBaseSensor):
     @property
     def native_value(self) -> str:
         runtime = self._runtime()
+
+        if runtime.get("maintenance_active"):
+            return "Wartung"
+
         if runtime.get("feeding_active"):
             return "Fütterung"
+
         skimmer_until = runtime.get("skimmer_delay_until")
         if skimmer_until and skimmer_until > datetime.now().astimezone():
             return "Abschäumer-Verzögerung"
+
         return "Normalbetrieb"
 
+    @property
+    def icon(self) -> str:
+        state = self.native_value
+        if state == "Wartung":
+            return "mdi:tools"
+        if state == "Fütterung":
+            return "mdi:fish-food"
+        if state == "Abschäumer-Verzögerung":
+            return "mdi:timer-sand"
+        return "mdi:check-circle-outline"
 
-class ReefControlFeedingRemainingSensor(ReefControlFeedingBaseSensor):
+
+class ReefControlRemainingTimeSensor(ReefControlRuntimeSensor):
     """Show remaining feeding or skimmer delay time."""
 
     _attr_icon = "mdi:timer-outline"
@@ -141,6 +158,10 @@ class ReefControlFeedingRemainingSensor(ReefControlFeedingBaseSensor):
     @property
     def native_value(self) -> str:
         runtime = self._runtime()
+
+        if runtime.get("maintenance_active"):
+            return "00:00"
+
         target = (
             runtime.get("feeding_until")
             if runtime.get("feeding_active")
@@ -149,6 +170,9 @@ class ReefControlFeedingRemainingSensor(ReefControlFeedingBaseSensor):
         if not target:
             return "00:00"
 
-        remaining = max(0, int((target - datetime.now().astimezone()).total_seconds()))
+        remaining = max(
+            0,
+            int((target - datetime.now().astimezone()).total_seconds()),
+        )
         minutes, seconds = divmod(remaining, 60)
         return f"{minutes:02d}:{seconds:02d}"
