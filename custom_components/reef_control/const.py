@@ -1,7 +1,7 @@
 """Constants for Reef Control."""
 
 DOMAIN = "reef_control"
-VERSION = "0.6.0"
+VERSION = "0.7.0"
 
 DEFAULT_AQUARIUM_NAME = "My Reef"
 
@@ -88,6 +88,18 @@ DEFAULT_RETURN_MASTER_ATO = True
 DEFAULT_EQUIPMENT_SKIMMER_DELAY = 5
 DEFAULT_EQUIPMENT_UVC_DELAY = 1
 
+CONF_RETURN_MASTER_FLOW = "return_master_flow"
+CONF_EQUIPMENT_FLOW_DELAY = "equipment_flow_delay"
+DEFAULT_RETURN_MASTER_FLOW = False
+DEFAULT_EQUIPMENT_FLOW_DELAY = 0
+
+CONF_SAFETY_CONTROL_ENABLED = "safety_control_enabled"
+CONF_SAFETY_HEATER_HIGH_TEMP = "safety_heater_high_temp"
+CONF_SAFETY_HEATER_SENSOR_FAIL = "safety_heater_sensor_fail"
+DEFAULT_SAFETY_CONTROL_ENABLED = True
+DEFAULT_SAFETY_HEATER_HIGH_TEMP = True
+DEFAULT_SAFETY_HEATER_SENSOR_FAIL = True
+
 CONF_FEEDING_DURATION = "feeding_duration"
 CONF_SKIMMER_DELAY = "skimmer_delay"
 CONF_FEEDING_PAUSE_SKIMMER = "feeding_pause_skimmer"
@@ -114,4 +126,4 @@ MANUAL_MEASUREMENTS = {
     "phosphate": {"name": "Phosphat", "icon": "mdi:flask-outline", "unit": "mg/L", "min": 0.0, "max": 10.0, "step": 0.01},
 }
 
-PLATFORMS = ["sensor", "switch", "number"]
+PLATFORMS = ["sensor", "switch", "number", "binary_sensor"]

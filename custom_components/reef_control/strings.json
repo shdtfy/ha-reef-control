@@ -38,7 +38,8 @@
           "temperature_control": "Temperature control",
           "reef_icp": "Reef ICP",
           "ato_control": "Water level control",
-          "equipment_control": "Equipment control"
+          "equipment_control": "Equipment control",
+          "safety_control": "Safety control"
         }
       },
       "entities": {
@@ -231,7 +232,9 @@
           "return_master_uvc": "Make UV-C depend on return pump",
           "return_master_ato": "Make ATO depend on return pump",
           "equipment_skimmer_delay": "Skimmer restart delay",
-          "equipment_uvc_delay": "UV-C restart delay"
+          "equipment_uvc_delay": "UV-C restart delay",
+          "return_master_flow": "Make flow pump depend on return pump",
+          "equipment_flow_delay": "Flow pump restart delay"
         },
         "data_description": {
           "equipment_control_enabled": "Enables cross-device safety and restart logic.",
@@ -239,7 +242,23 @@
           "return_master_uvc": "Stops UV-C when return flow is unavailable and restarts it after the configured delay.",
           "return_master_ato": "Blocks the ATO pump while the return pump is off. Automatic water-level control is re-evaluated after restart.",
           "equipment_skimmer_delay": "Delay after the return pump starts before a controller-paused skimmer is restarted.",
-          "equipment_uvc_delay": "Delay after the return pump starts before controller-paused UV-C is restarted."
+          "equipment_uvc_delay": "Delay after the return pump starts before controller-paused UV-C is restarted.",
+          "return_master_flow": "Optional: Stops the flow pump with the return pump and restarts it in a controlled way. Disabled by default because display-tank circulation often should keep running.",
+          "equipment_flow_delay": "Delay after the return pump starts before a controller-paused flow pump restarts."
+        }
+      },
+      "safety_control": {
+        "title": "Safety control",
+        "description": "Central aquarium protection. Safety rules take priority over normal timers and control logic.",
+        "data": {
+          "safety_control_enabled": "Enable safety control",
+          "safety_heater_high_temp": "Immediately switch heater off at critical high temperature",
+          "safety_heater_sensor_fail": "Switch heater off if temperature sensor fails"
+        },
+        "data_description": {
+          "safety_control_enabled": "Enables Reef Control central safety interlocks.",
+          "safety_heater_high_temp": "If temperature reaches the configured critical maximum, the heater is switched off immediately without waiting for minimum run time.",
+          "safety_heater_sensor_fail": "Fail-safe: if the configured temperature sensor is unavailable or invalid, an active heater is switched off."
         }
       }
     },
