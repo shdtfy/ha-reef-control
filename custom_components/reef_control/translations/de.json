@@ -36,7 +36,8 @@
           "limits": "Grenzwerte",
           "operating_modes": "Betriebsmodi",
           "temperature_control": "Temperaturregelung",
-          "reef_icp": "Reef ICP"
+          "reef_icp": "Reef ICP",
+          "ato_control": "Wasserstandsregelung"
         }
       },
       "entities": {
@@ -58,7 +59,7 @@
           "uvc_entity": "Entität, über die die UV-C-Anlage ein- und ausgeschaltet wird.",
           "light_entity": "Entität zur Steuerung der Aquariumbeleuchtung.",
           "heater_entity": "Entität, über die die Aquariumheizung geschaltet wird. Reef Control kann sie für die automatische Temperaturregelung verwenden.",
-          "ato_entity": "Entität, über die die automatische Nachfüllanlage ein- und ausgeschaltet wird."
+          "ato_entity": "Entität, über die die Nachfüllpumpe geschaltet wird. Reef Control kann sie für die automatische Wasserstandsregelung verwenden."
         }
       },
       "water_values": {
@@ -67,12 +68,14 @@
         "data": {
           "temperature_entity": "Temperatur",
           "ph_entity": "pH",
-          "salinity_entity": "Salinität"
+          "salinity_entity": "Salinität",
+          "water_level_entity": "Wasserstand"
         },
         "data_description": {
           "temperature_entity": "Sensor, der die aktuelle Wassertemperatur des Aquariums liefert.",
           "ph_entity": "Sensor, der den aktuellen pH-Wert liefert.",
-          "salinity_entity": "Sensor, der die aktuelle Salinität liefert."
+          "salinity_entity": "Sensor, der die aktuelle Salinität liefert.",
+          "water_level_entity": "Binärsensor oder Eingabe-Helfer, mit dem Reef Control einen zu niedrigen Wasserstand erkennt."
         }
       },
       "limits": {
@@ -199,6 +202,24 @@
       "reef_icp_unavailable": {
         "title": "Reef ICP",
         "description": "Es wurde kein Reef-ICP-Aquarium gefunden. Installiere und konfiguriere zuerst Reef ICP."
+      },
+      "ato_control": {
+        "title": "Wasserstandsregelung",
+        "description": "Konfiguriere die automatische Nachfüllung. Dafür müssen zuvor ein Wasserstandssensor und eine Nachfüllpumpe zugeordnet sein.",
+        "data": {
+          "ato_control_enabled": "Wasserstandsregelung aktivieren",
+          "ato_low_state": "Zustand für niedrigen Wasserstand",
+          "ato_confirm_delay": "Bestätigungszeit bei niedrigem Wasserstand",
+          "ato_max_runtime": "Maximale Nachfülldauer",
+          "ato_cooldown": "Mindestpause zwischen Nachfüllungen"
+        },
+        "data_description": {
+          "ato_control_enabled": "Aktiviert die automatische Nachfüllsteuerung durch Reef Control.",
+          "ato_low_state": "Lege fest, ob EIN oder AUS bei deinem Sensor bedeutet, dass der Wasserstand zu niedrig ist.",
+          "ato_confirm_delay": "Der Wasserstand muss so lange durchgehend als niedrig erkannt werden, bevor die Pumpe startet. Das filtert Wellen und kurze Sensorwechsel.",
+          "ato_max_runtime": "Harte Sicherheitsgrenze für einen Nachfüllvorgang. Wird sie erreicht, schaltet Reef Control die Pumpe aus und verriegelt die Regelung, bis du sie bewusst aus- und wieder einschaltest.",
+          "ato_cooldown": "Mindestwartezeit nach einer abgeschlossenen Nachfüllung, bevor erneut nachgefüllt werden darf."
+        }
       }
     },
     "error": {
