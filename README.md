@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="images/logo.png" alt="Reef Control" width="520">
+</p>
+
 # 🪸 Reef Control
 
 **Aquarium monitoring, management & automation for Home Assistant**
