@@ -1,7 +1,7 @@
 """Constants for Reef Control."""
 
 DOMAIN = "reef_control"
-VERSION = "0.2.0"
+VERSION = "0.3.0"
 
 DEFAULT_AQUARIUM_NAME = "My Reef"
 
@@ -70,4 +70,49 @@ CONF_MAINTENANCE_PAUSE_ATO = "maintenance_pause_ato"
 CONF_MAINTENANCE_PAUSE_HEATER = "maintenance_pause_heater"
 CONF_MAINTENANCE_PAUSE_LIGHT = "maintenance_pause_light"
 
-PLATFORMS = ["sensor", "switch"]
+# Manual water measurements. Kept deliberately compact: these are the
+# parameters commonly measured by hand and not already mapped as live sensors.
+MANUAL_MEASUREMENTS = {
+    "kh": {
+        "name": "KH",
+        "icon": "mdi:flask-outline",
+        "unit": "dKH",
+        "min": 0.0,
+        "max": 20.0,
+        "step": 0.1,
+    },
+    "calcium": {
+        "name": "Calcium",
+        "icon": "mdi:flask-outline",
+        "unit": "mg/L",
+        "min": 0.0,
+        "max": 1000.0,
+        "step": 1.0,
+    },
+    "magnesium": {
+        "name": "Magnesium",
+        "icon": "mdi:flask-outline",
+        "unit": "mg/L",
+        "min": 0.0,
+        "max": 2500.0,
+        "step": 1.0,
+    },
+    "nitrate": {
+        "name": "Nitrat",
+        "icon": "mdi:flask-outline",
+        "unit": "mg/L",
+        "min": 0.0,
+        "max": 200.0,
+        "step": 0.1,
+    },
+    "phosphate": {
+        "name": "Phosphat",
+        "icon": "mdi:flask-outline",
+        "unit": "mg/L",
+        "min": 0.0,
+        "max": 10.0,
+        "step": 0.01,
+    },
+}
+
+PLATFORMS = ["sensor", "switch", "number"]
