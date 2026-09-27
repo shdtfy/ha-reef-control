@@ -2,18 +2,19 @@
 from __future__ import annotations
 from datetime import datetime, timedelta
 from homeassistant.components.sensor import SensorEntity
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
-from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.core import callback
 from .const import *
 
 async def async_setup_entry(hass, entry, async_add_entities):
     async_add_entities([
-        ReefControlAquariumSensor(entry), ReefControlOperatingStatusSensor(hass,entry), ReefControlRemainingTimeSensor(hass,entry),
-        ReefControlParameterStatusSensor(hass,entry,"temperature"), ReefControlParameterStatusSensor(hass,entry,"ph"), ReefControlParameterStatusSensor(hass,entry,"salinity"),
+        ReefControlAquariumSensor(entry), ReefControlOperatingStatusSensor(hass,entry),
+        ReefControlRemainingTimeSensor(hass,entry),
+        ReefControlParameterStatusSensor(hass,entry,"temperature"),
+        ReefControlParameterStatusSensor(hass,entry,"ph"),
+        ReefControlParameterStatusSensor(hass,entry,"salinity"),
         ReefControlOverallStatusSensor(hass,entry),
     ])
 
@@ -66,9 +67,9 @@ class ReefControlRemainingTimeSensor(ReefControlRuntimeSensor):
         remaining=max(0,int((target-datetime.now().astimezone()).total_seconds())); m,s=divmod(remaining,60); return f"{m:02d}:{s:02d}"
 
 PARAMS={
- "temperature":(CONF_TEMPERATURE_ENTITY,"Temperaturstatus","mdi:thermometer",CONF_TEMPERATURE_MIN,CONF_TEMPERATURE_MAX,CONF_TEMPERATURE_CRITICAL_MIN,CONF_TEMPERATURE_CRITICAL_MAX,DEFAULT_TEMPERATURE_MIN,DEFAULT_TEMPERATURE_MAX,DEFAULT_TEMPERATURE_CRITICAL_MIN,DEFAULT_TEMPERATURE_CRITICAL_MAX),
- "ph":(CONF_PH_ENTITY,"pH-Status","mdi:ph",CONF_PH_MIN,CONF_PH_MAX,CONF_PH_CRITICAL_MIN,CONF_PH_CRITICAL_MAX,DEFAULT_PH_MIN,DEFAULT_PH_MAX,DEFAULT_PH_CRITICAL_MIN,DEFAULT_PH_CRITICAL_MAX),
- "salinity":(CONF_SALINITY_ENTITY,"Salinitätsstatus","mdi:waves",CONF_SALINITY_MIN,CONF_SALINITY_MAX,CONF_SALINITY_CRITICAL_MIN,CONF_SALINITY_CRITICAL_MAX,DEFAULT_SALINITY_MIN,DEFAULT_SALINITY_MAX,DEFAULT_SALINITY_CRITICAL_MIN,DEFAULT_SALINITY_CRITICAL_MAX),
+ "temperature":(CONF_TEMPERATURE_ENTITY,"Temperatur","mdi:thermometer",CONF_TEMPERATURE_MIN,CONF_TEMPERATURE_MAX,CONF_TEMPERATURE_CRITICAL_MIN,CONF_TEMPERATURE_CRITICAL_MAX,DEFAULT_TEMPERATURE_MIN,DEFAULT_TEMPERATURE_MAX,DEFAULT_TEMPERATURE_CRITICAL_MIN,DEFAULT_TEMPERATURE_CRITICAL_MAX),
+ "ph":(CONF_PH_ENTITY,"pH","mdi:ph",CONF_PH_MIN,CONF_PH_MAX,CONF_PH_CRITICAL_MIN,CONF_PH_CRITICAL_MAX,DEFAULT_PH_MIN,DEFAULT_PH_MAX,DEFAULT_PH_CRITICAL_MIN,DEFAULT_PH_CRITICAL_MAX),
+ "salinity":(CONF_SALINITY_ENTITY,"Salinität","mdi:waves",CONF_SALINITY_MIN,CONF_SALINITY_MAX,CONF_SALINITY_CRITICAL_MIN,CONF_SALINITY_CRITICAL_MAX,DEFAULT_SALINITY_MIN,DEFAULT_SALINITY_MAX,DEFAULT_SALINITY_CRITICAL_MIN,DEFAULT_SALINITY_CRITICAL_MAX),
 }
 
 def evaluate(hass,entry,param):

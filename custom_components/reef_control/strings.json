@@ -21,31 +21,59 @@
   "options": {
     "step": {
       "init": {
-        "title": "Aquarium entities, monitoring & operating modes",
-        "description": "Assign entities, define normal and critical water parameter ranges, and configure feeding and maintenance mode.",
+        "title": "Configure Reef Control",
+        "description": "Choose the area you want to configure.",
+        "menu_options": {
+          "entities": "Equipment & entities",
+          "water_values": "Water values",
+          "limits": "Monitoring limits",
+          "operating_modes": "Operating modes"
+        }
+      },
+      "entities": {
+        "title": "Equipment & entities",
+        "description": "Assign the Home Assistant entities that control your aquarium equipment.",
         "data": {
-          "temperature_entity": "Temperature",
-          "ph_entity": "pH",
-          "salinity_entity": "Salinity",
           "skimmer_entity": "Protein skimmer",
           "return_pump_entity": "Return pump",
           "flow_pump_entity": "Flow pump",
           "uvc_entity": "UV-C sterilizer",
           "light_entity": "Aquarium lighting",
           "heater_entity": "Heater",
-          "ato_entity": "Auto top-off (ATO)",
-          "temperature_min": "Temperature normal minimum",
-          "temperature_max": "Temperature normal maximum",
-          "temperature_critical_min": "Temperature critical minimum",
-          "temperature_critical_max": "Temperature critical maximum",
-          "ph_min": "pH normal minimum",
-          "ph_max": "pH normal maximum",
-          "ph_critical_min": "pH critical minimum",
-          "ph_critical_max": "pH critical maximum",
-          "salinity_min": "Salinity normal minimum",
-          "salinity_max": "Salinity normal maximum",
-          "salinity_critical_min": "Salinity critical minimum",
-          "salinity_critical_max": "Salinity critical maximum",
+          "ato_entity": "Auto top-off (ATO)"
+        }
+      },
+      "water_values": {
+        "title": "Water values",
+        "description": "Assign the sensors Reef Control should monitor.",
+        "data": {
+          "temperature_entity": "Temperature",
+          "ph_entity": "pH",
+          "salinity_entity": "Salinity"
+        }
+      },
+      "limits": {
+        "title": "Monitoring limits",
+        "description": "Define normal and critical ranges for each water parameter.",
+        "data": {
+          "temperature_min": "Temperature lower limit",
+          "temperature_max": "Temperature upper limit",
+          "temperature_critical_min": "Temperature critical lower limit",
+          "temperature_critical_max": "Temperature critical upper limit",
+          "ph_min": "pH lower limit",
+          "ph_max": "pH upper limit",
+          "ph_critical_min": "pH critical lower limit",
+          "ph_critical_max": "pH critical upper limit",
+          "salinity_min": "Salinity lower limit",
+          "salinity_max": "Salinity upper limit",
+          "salinity_critical_min": "Salinity critical lower limit",
+          "salinity_critical_max": "Salinity critical upper limit"
+        }
+      },
+      "operating_modes": {
+        "title": "Operating modes",
+        "description": "Configure feeding and maintenance behavior.",
+        "data": {
           "feeding_duration": "Feeding duration",
           "skimmer_delay": "Skimmer restart delay",
           "feeding_pause_skimmer": "Pause protein skimmer during feeding",
