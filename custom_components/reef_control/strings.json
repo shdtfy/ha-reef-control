@@ -1,1 +1,21 @@
-
+{
+  "title": "Reef Control",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up your aquarium",
+        "description": "Create an aquarium in Reef Control.",
+        "data": {
+          "aquarium_name": "Aquarium name",
+          "volume": "Net water volume (L)",
+          "tank_type": "Aquarium type",
+          "supply_system": "Supply system",
+          "reef_method": "Reef method"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "This aquarium is already configured."
+    }
+  }
+}
