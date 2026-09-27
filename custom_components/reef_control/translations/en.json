@@ -21,8 +21,8 @@
   "options": {
     "step": {
       "init": {
-        "title": "Assign aquarium entities",
-        "description": "Assign existing Home Assistant entities to the roles in this aquarium. All assignments are optional.",
+        "title": "Assign aquarium entities & feeding mode",
+        "description": "Assign Home Assistant entities and configure feeding mode. All entity assignments are optional.",
         "data": {
           "temperature_entity": "Temperature",
           "ph_entity": "pH",
@@ -32,7 +32,13 @@
           "flow_pump_entity": "Flow pump",
           "light_entity": "Aquarium lighting",
           "heater_entity": "Heater",
-          "ato_entity": "Auto top-off (ATO)"
+          "ato_entity": "Auto top-off (ATO)",
+          "feeding_duration": "Feeding duration",
+          "skimmer_delay": "Skimmer restart delay",
+          "feeding_pause_skimmer": "Pause protein skimmer",
+          "feeding_pause_return_pump": "Pause return pump",
+          "feeding_pause_flow_pump": "Pause flow pump",
+          "feeding_pause_ato": "Pause auto top-off (ATO)"
         }
       }
     }

@@ -21,8 +21,8 @@
   "options": {
     "step": {
       "init": {
-        "title": "Aquarium-Entitäten zuordnen",
-        "description": "Ordne vorhandene Home-Assistant-Entitäten den Rollen dieses Aquariums zu. Alle Zuordnungen sind optional.",
+        "title": "Aquarium-Entitäten & Fütterungsmodus",
+        "description": "Ordne vorhandene Home-Assistant-Entitäten zu und konfiguriere den Fütterungsmodus. Alle Entitätszuordnungen sind optional.",
         "data": {
           "temperature_entity": "Temperatur",
           "ph_entity": "pH-Wert",
@@ -32,7 +32,13 @@
           "flow_pump_entity": "Strömungspumpe",
           "light_entity": "Aquariumbeleuchtung",
           "heater_entity": "Heizung",
-          "ato_entity": "Nachfüllanlage (ATO)"
+          "ato_entity": "Nachfüllanlage (ATO)",
+          "feeding_duration": "Fütterungsdauer",
+          "skimmer_delay": "Abschäumer-Nachlaufverzögerung",
+          "feeding_pause_skimmer": "Abschäumer beim Füttern pausieren",
+          "feeding_pause_return_pump": "Rückförderpumpe beim Füttern pausieren",
+          "feeding_pause_flow_pump": "Strömungspumpe beim Füttern pausieren",
+          "feeding_pause_ato": "Nachfüllanlage beim Füttern pausieren"
         }
       }
     }
