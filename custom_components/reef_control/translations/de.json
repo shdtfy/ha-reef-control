@@ -1,4 +1,3 @@
-
 {
   "title": "Reef Control",
   "config": {
@@ -17,6 +16,25 @@
     },
     "abort": {
       "already_configured": "Dieses Aquarium ist bereits eingerichtet."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Aquarium-Entitäten zuordnen",
+        "description": "Ordne vorhandene Home-Assistant-Entitäten den Rollen dieses Aquariums zu. Alle Zuordnungen sind optional.",
+        "data": {
+          "temperature_entity": "Temperatur",
+          "ph_entity": "pH-Wert",
+          "salinity_entity": "Salinität",
+          "skimmer_entity": "Abschäumer",
+          "return_pump_entity": "Rückförderpumpe",
+          "flow_pump_entity": "Strömungspumpe",
+          "light_entity": "Aquariumbeleuchtung",
+          "heater_entity": "Heizung",
+          "ato_entity": "Nachfüllanlage (ATO)"
+        }
+      }
     }
   }
 }
