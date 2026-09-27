@@ -39,7 +39,8 @@
           "reef_icp": "Reef ICP",
           "ato_control": "Wasserstandsregelung",
           "equipment_control": "Techniksteuerung",
-          "safety_control": "Sicherheitssteuerung"
+          "safety_control": "Sicherheitssteuerung",
+          "uvc_control": "UV-C-Steuerung"
         }
       },
       "entities": {
@@ -259,6 +260,22 @@
           "safety_control_enabled": "Aktiviert die zentralen Schutzverriegelungen von Reef Control.",
           "safety_heater_high_temp": "Überschreitet die Temperatur den unter Grenzwerte eingestellten kritischen Maximalwert, wird die Heizung ohne Mindestlaufzeit sofort ausgeschaltet.",
           "safety_heater_sensor_fail": "Fail-Safe: Ist der konfigurierte Temperatursensor nicht verfügbar oder liefert keinen gültigen Wert, wird eine eingeschaltete Heizung ausgeschaltet."
+        }
+      },
+      "uvc_control": {
+        "title": "UV-C-Steuerung",
+        "description": "Steuere die UV-C-Anlage automatisch. Reef Control berücksichtigt dabei Zeitplan, Rückförderpumpe sowie Fütterungs- und Wartungsmodus.",
+        "data": {
+          "uvc_control_enabled": "UV-C-Steuerung aktivieren",
+          "uvc_mode": "Betriebsart",
+          "uvc_start_time": "Startzeit",
+          "uvc_end_time": "Endzeit"
+        },
+        "data_description": {
+          "uvc_control_enabled": "Aktiviert die automatische UV-C-Steuerung durch Reef Control.",
+          "uvc_mode": "Dauerbetrieb hält UV-C eingeschaltet, Zeitplan schaltet nur im gewählten Zeitfenster und Aus hält UV-C ausgeschaltet.",
+          "uvc_start_time": "Uhrzeit, ab der UV-C im Zeitplanbetrieb laufen soll.",
+          "uvc_end_time": "Uhrzeit, zu der UV-C im Zeitplanbetrieb ausgeschaltet wird. Zeiträume über Mitternacht werden unterstützt."
         }
       }
     },

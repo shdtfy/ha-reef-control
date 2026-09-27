@@ -39,7 +39,8 @@
           "reef_icp": "Reef ICP",
           "ato_control": "Water level control",
           "equipment_control": "Equipment control",
-          "safety_control": "Safety control"
+          "safety_control": "Safety control",
+          "uvc_control": "UV-C control"
         }
       },
       "entities": {
@@ -259,6 +260,22 @@
           "safety_control_enabled": "Enables Reef Control central safety interlocks.",
           "safety_heater_high_temp": "If temperature reaches the configured critical maximum, the heater is switched off immediately without waiting for minimum run time.",
           "safety_heater_sensor_fail": "Fail-safe: if the configured temperature sensor is unavailable or invalid, an active heater is switched off."
+        }
+      },
+      "uvc_control": {
+        "title": "UV-C control",
+        "description": "Control the UV-C sterilizer automatically. Reef Control respects the schedule, return pump and feeding/maintenance modes.",
+        "data": {
+          "uvc_control_enabled": "Enable UV-C control",
+          "uvc_mode": "Operating mode",
+          "uvc_start_time": "Start time",
+          "uvc_end_time": "End time"
+        },
+        "data_description": {
+          "uvc_control_enabled": "Enables automatic UV-C control by Reef Control.",
+          "uvc_mode": "Continuous keeps UV-C on, Schedule runs it only in the selected window, and Off keeps it switched off.",
+          "uvc_start_time": "Time at which UV-C should start in schedule mode.",
+          "uvc_end_time": "Time at which UV-C should stop in schedule mode. Overnight schedules are supported."
         }
       }
     },
