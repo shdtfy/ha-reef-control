@@ -16,6 +16,33 @@ CONF_TEMPERATURE_ENTITY = "temperature_entity"
 CONF_PH_ENTITY = "ph_entity"
 CONF_SALINITY_ENTITY = "salinity_entity"
 
+# Monitoring limits
+CONF_TEMPERATURE_MIN = "temperature_min"
+CONF_TEMPERATURE_MAX = "temperature_max"
+CONF_TEMPERATURE_CRITICAL_MIN = "temperature_critical_min"
+CONF_TEMPERATURE_CRITICAL_MAX = "temperature_critical_max"
+CONF_PH_MIN = "ph_min"
+CONF_PH_MAX = "ph_max"
+CONF_PH_CRITICAL_MIN = "ph_critical_min"
+CONF_PH_CRITICAL_MAX = "ph_critical_max"
+CONF_SALINITY_MIN = "salinity_min"
+CONF_SALINITY_MAX = "salinity_max"
+CONF_SALINITY_CRITICAL_MIN = "salinity_critical_min"
+CONF_SALINITY_CRITICAL_MAX = "salinity_critical_max"
+
+DEFAULT_TEMPERATURE_MIN = 24.0
+DEFAULT_TEMPERATURE_MAX = 28.0
+DEFAULT_TEMPERATURE_CRITICAL_MIN = 22.0
+DEFAULT_TEMPERATURE_CRITICAL_MAX = 30.0
+DEFAULT_PH_MIN = 7.8
+DEFAULT_PH_MAX = 8.5
+DEFAULT_PH_CRITICAL_MIN = 7.5
+DEFAULT_PH_CRITICAL_MAX = 8.7
+DEFAULT_SALINITY_MIN = 33.0
+DEFAULT_SALINITY_MAX = 36.0
+DEFAULT_SALINITY_CRITICAL_MIN = 30.0
+DEFAULT_SALINITY_CRITICAL_MAX = 39.0
+
 # Equipment entity assignments
 CONF_SKIMMER_ENTITY = "skimmer_entity"
 CONF_RETURN_PUMP_ENTITY = "return_pump_entity"
@@ -33,7 +60,6 @@ CONF_FEEDING_PAUSE_RETURN_PUMP = "feeding_pause_return_pump"
 CONF_FEEDING_PAUSE_FLOW_PUMP = "feeding_pause_flow_pump"
 CONF_FEEDING_PAUSE_UVC = "feeding_pause_uvc"
 CONF_FEEDING_PAUSE_ATO = "feeding_pause_ato"
-
 DEFAULT_FEEDING_DURATION = 10
 DEFAULT_SKIMMER_DELAY = 5
 
