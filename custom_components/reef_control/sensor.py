@@ -15,6 +15,7 @@ from .const import *
 async def async_setup_entry(hass, entry, async_add_entities):
     async_add_entities([
         ReefControlAquariumSensor(entry), ReefControlOperatingStatusSensor(hass,entry),
+        ReefControlTemperatureControlStatusSensor(hass,entry),
         ReefControlRemainingTimeSensor(hass,entry),
         ReefControlParameterStatusSensor(hass,entry,"temperature"),
         ReefControlParameterStatusSensor(hass,entry,"ph"),
@@ -61,6 +62,20 @@ class ReefControlOperatingStatusSensor(ReefControlRuntimeSensor):
         return "Normalbetrieb"
     @property
     def icon(self): return {"Wartung":"mdi:tools","Fütterung":"mdi:fish","Abschäumer-Verzögerung":"mdi:timer-sand"}.get(self.native_value,"mdi:check-circle-outline")
+
+class ReefControlTemperatureControlStatusSensor(ReefControlRuntimeSensor):
+    _attr_name="Temperaturregelung Status"
+    _attr_icon="mdi:thermostat"
+    _attr_entity_category=EntityCategory.DIAGNOSTIC
+    def __init__(self,hass,entry):
+        super().__init__(hass,entry); self._attr_unique_id=f"{entry.entry_id}_temperature_control_status"
+    @property
+    def native_value(self):
+        return self._runtime().get("temperature_control_status","Deaktiviert")
+    @property
+    def extra_state_attributes(self):
+        controller=self._runtime().get("temperature_control_switch")
+        return controller.extra_state_attributes if controller else {}
 
 class ReefControlRemainingTimeSensor(ReefControlRuntimeSensor):
     _attr_icon="mdi:timer-outline"

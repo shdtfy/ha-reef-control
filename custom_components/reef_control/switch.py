@@ -3,14 +3,15 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime, timedelta
 from homeassistant.components.switch import SwitchEntity
-from homeassistant.const import STATE_ON
+from homeassistant.const import STATE_ON, STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.event import async_track_state_change_event
 from .const import *
 
 async def async_setup_entry(hass,entry,async_add_entities):
-    feeding=ReefControlFeedingModeSwitch(hass,entry); maintenance=ReefControlMaintenanceModeSwitch(hass,entry)
-    r=hass.data.setdefault(DOMAIN,{}).setdefault(entry.entry_id,{"entry":entry}); r.update({"feeding_switch":feeding,"maintenance_switch":maintenance}); r.setdefault("feeding_active",False); r.setdefault("feeding_until",None); r.setdefault("skimmer_delay_until",None); r.setdefault("maintenance_active",False)
-    async_add_entities([feeding,maintenance])
+    feeding=ReefControlFeedingModeSwitch(hass,entry); maintenance=ReefControlMaintenanceModeSwitch(hass,entry); temperature=ReefControlTemperatureControlSwitch(hass,entry)
+    r=hass.data.setdefault(DOMAIN,{}).setdefault(entry.entry_id,{"entry":entry}); r.update({"feeding_switch":feeding,"maintenance_switch":maintenance,"temperature_control_switch":temperature}); r.setdefault("feeding_active",False); r.setdefault("feeding_until",None); r.setdefault("skimmer_delay_until",None); r.setdefault("maintenance_active",False); r.setdefault("temperature_control_status","Deaktiviert")
+    async_add_entities([feeding,maintenance,temperature])
 
 class ReefControlBaseSwitch(SwitchEntity):
     _attr_has_entity_name=True
@@ -84,5 +85,50 @@ class ReefControlMaintenanceModeSwitch(ReefControlBaseSwitch):
     async def async_turn_off(self,**kwargs):
         if not self._is_on:return
         self._is_on=False; self._runtime()["maintenance_active"]=False; self.async_write_ha_state(); await self._restore_entities()
+        controller=self._runtime().get("temperature_control_switch")
+        if controller and controller.is_on: await controller.async_evaluate()
     def _maintenance_pause_entities(self):
         o=self._entry.options; pairs=((CONF_SKIMMER_ENTITY,CONF_MAINTENANCE_PAUSE_SKIMMER,True),(CONF_RETURN_PUMP_ENTITY,CONF_MAINTENANCE_PAUSE_RETURN_PUMP,True),(CONF_FLOW_PUMP_ENTITY,CONF_MAINTENANCE_PAUSE_FLOW_PUMP,True),(CONF_UVC_ENTITY,CONF_MAINTENANCE_PAUSE_UVC,True),(CONF_ATO_ENTITY,CONF_MAINTENANCE_PAUSE_ATO,True),(CONF_HEATER_ENTITY,CONF_MAINTENANCE_PAUSE_HEATER,True),(CONF_LIGHT_ENTITY,CONF_MAINTENANCE_PAUSE_LIGHT,False)); return [o[k] for k,f,d in pairs if o.get(k) and o.get(f,d)]
+
+class ReefControlTemperatureControlSwitch(ReefControlBaseSwitch):
+    _attr_name="Temperaturregelung"; _attr_icon="mdi:thermostat"
+    def __init__(self,hass,entry):
+        super().__init__(hass,entry); self._attr_unique_id=f"{entry.entry_id}_temperature_control"
+        self._is_on=bool(entry.options.get(CONF_TEMPERATURE_CONTROL_ENABLED,DEFAULT_TEMPERATURE_CONTROL_ENABLED))
+        self._remove_listener=None; self._last_temperature=None; self._last_action="Deaktiviert"
+    async def async_added_to_hass(self):
+        sensor=self._entry.options.get(CONF_TEMPERATURE_ENTITY)
+        if sensor:self._remove_listener=async_track_state_change_event(self.hass,[sensor],self._temperature_changed)
+        if self._is_on:await self.async_evaluate()
+    async def async_will_remove_from_hass(self):
+        if self._remove_listener:self._remove_listener(); self._remove_listener=None
+    async def _temperature_changed(self,event):
+        if self._is_on:await self.async_evaluate()
+    async def async_turn_on(self,**kwargs):
+        self._is_on=True; self.async_write_ha_state(); await self.async_evaluate()
+    async def async_turn_off(self,**kwargs):
+        self._is_on=False; self._set_status("Deaktiviert")
+    def _set_status(self,status):
+        self._last_action=status; self._runtime()["temperature_control_status"]=status; self.async_write_ha_state()
+    async def async_evaluate(self):
+        if not self._is_on:self._set_status("Deaktiviert"); return
+        sensor_id=self._entry.options.get(CONF_TEMPERATURE_ENTITY); heater_id=self._entry.options.get(CONF_HEATER_ENTITY)
+        if not sensor_id or not heater_id:self._set_status("Nicht konfiguriert"); return
+        if self._runtime().get("maintenance_active"):self._set_status("Pausiert"); return
+        state=self.hass.states.get(sensor_id)
+        if state is None or state.state in (STATE_UNKNOWN,STATE_UNAVAILABLE):self._set_status("Sensorfehler"); return
+        try:temperature=float(str(state.state).replace(",","."))
+        except (TypeError,ValueError):self._set_status("Sensorfehler"); return
+        self._last_temperature=temperature
+        target=float(self._entry.options.get(CONF_TEMPERATURE_TARGET,DEFAULT_TEMPERATURE_TARGET)); hysteresis=float(self._entry.options.get(CONF_TEMPERATURE_HYSTERESIS,DEFAULT_TEMPERATURE_HYSTERESIS)); heater=self.hass.states.get(heater_id)
+        if temperature<=target-hysteresis:
+            if heater and heater.state!=STATE_ON:await self._set(heater_id,True)
+            self._set_status("Heizen")
+        elif temperature>=target:
+            if heater and heater.state==STATE_ON:await self._set(heater_id,False)
+            self._set_status("Sollbereich")
+        else:self._set_status("Heizen" if heater and heater.state==STATE_ON else "Sollbereich")
+    @property
+    def extra_state_attributes(self):
+        target=float(self._entry.options.get(CONF_TEMPERATURE_TARGET,DEFAULT_TEMPERATURE_TARGET)); hysteresis=float(self._entry.options.get(CONF_TEMPERATURE_HYSTERESIS,DEFAULT_TEMPERATURE_HYSTERESIS))
+        return {"status":self._last_action,"temperature":self._last_temperature,"target":target,"heating_on_below":round(target-hysteresis,2),"heating_off_at":target,"hysteresis":hysteresis,"temperature_entity":self._entry.options.get(CONF_TEMPERATURE_ENTITY),"heater_entity":self._entry.options.get(CONF_HEATER_ENTITY)}
