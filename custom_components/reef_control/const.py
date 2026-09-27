@@ -1,7 +1,7 @@
 """Constants for Reef Control."""
 
 DOMAIN = "reef_control"
-VERSION = "0.1.2"
+VERSION = "0.2.0"
 
 DEFAULT_AQUARIUM_NAME = "My Reef"
 
@@ -14,6 +14,9 @@ CONF_REEF_METHOD = "reef_method"
 CONF_TEMPERATURE_ENTITY = "temperature_entity"
 CONF_PH_ENTITY = "ph_entity"
 CONF_SALINITY_ENTITY = "salinity_entity"
+
+CONF_REEF_ICP_ENTRY = "reef_icp_entry"
+REEF_ICP_DOMAIN = "oceamo_icp"
 
 CONF_TEMPERATURE_MIN = "temperature_min"
 CONF_TEMPERATURE_MAX = "temperature_max"

@@ -58,20 +58,12 @@ class ReefControlOptionsFlow(config_entries.OptionsFlow):
         return {"suggested_value": self._options.get(key, default)}
 
     def _number(self, key, default, minimum, maximum, step, unit=None):
-        config = {
-            "min": minimum,
-            "max": maximum,
-            "step": step,
-            "mode": selector.NumberSelectorMode.BOX,
-        }
-        # Important: Home Assistant rejects unit_of_measurement=None.
+        config = {"min": minimum, "max": maximum, "step": step,
+                  "mode": selector.NumberSelectorMode.BOX}
         if unit is not None:
             config["unit_of_measurement"] = unit
-
-        return (
-            vol.Optional(key, description=self._suggested(key, default)),
-            selector.NumberSelector(selector.NumberSelectorConfig(**config)),
-        )
+        return (vol.Optional(key, description=self._suggested(key, default)),
+                selector.NumberSelector(selector.NumberSelectorConfig(**config)))
 
     async def _save(self, changes):
         data = dict(self._options)
@@ -81,45 +73,67 @@ class ReefControlOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(self, user_input=None) -> FlowResult:
         return self.async_show_menu(
             step_id="init",
-            menu_options=["entities", "water_values", "limits", "operating_modes"],
+            menu_options=["entities", "water_values", "limits", "operating_modes", "reef_icp"],
         )
 
     async def async_step_entities(self, user_input=None) -> FlowResult:
         if user_input is not None:
             return await self._save(user_input)
-
         switch_domains = ["switch", "input_boolean"]
         fields = {}
-        for key in (
-            CONF_SKIMMER_ENTITY, CONF_RETURN_PUMP_ENTITY, CONF_FLOW_PUMP_ENTITY,
-            CONF_UVC_ENTITY, CONF_HEATER_ENTITY, CONF_ATO_ENTITY,
-        ):
+        for key in (CONF_SKIMMER_ENTITY, CONF_RETURN_PUMP_ENTITY, CONF_FLOW_PUMP_ENTITY,
+                    CONF_UVC_ENTITY, CONF_HEATER_ENTITY, CONF_ATO_ENTITY):
             fields[vol.Optional(key, description=self._suggested(key))] = selector.EntitySelector(
-                selector.EntitySelectorConfig(domain=switch_domains)
-            )
-        fields[vol.Optional(CONF_LIGHT_ENTITY, description=self._suggested(CONF_LIGHT_ENTITY))] = (
-            selector.EntitySelector(
-                selector.EntitySelectorConfig(domain=["light", "switch", "input_boolean"])
-            )
-        )
+                selector.EntitySelectorConfig(domain=switch_domains))
+        fields[vol.Optional(CONF_LIGHT_ENTITY, description=self._suggested(CONF_LIGHT_ENTITY))] = selector.EntitySelector(
+            selector.EntitySelectorConfig(domain=["light", "switch", "input_boolean"]))
         return self.async_show_form(step_id="entities", data_schema=vol.Schema(fields))
 
     async def async_step_water_values(self, user_input=None) -> FlowResult:
         if user_input is not None:
             return await self._save(user_input)
-
         fields = {}
         for key in (CONF_TEMPERATURE_ENTITY, CONF_PH_ENTITY, CONF_SALINITY_ENTITY):
             fields[vol.Optional(key, description=self._suggested(key))] = selector.EntitySelector(
-                selector.EntitySelectorConfig(domain="sensor")
-            )
+                selector.EntitySelectorConfig(domain="sensor"))
         return self.async_show_form(step_id="water_values", data_schema=vol.Schema(fields))
 
-    async def async_step_limits(self, user_input=None) -> FlowResult:
-        return self.async_show_menu(
-            step_id="limits",
-            menu_options=["temperature_limits", "ph_limits", "salinity_limits"],
+    async def async_step_reef_icp(self, user_input=None) -> FlowResult:
+        if user_input is not None:
+            return await self._save(user_input)
+
+        entries = self.hass.config_entries.async_entries(REEF_ICP_DOMAIN)
+        if not entries:
+            return self.async_show_form(step_id="reef_icp_unavailable", data_schema=vol.Schema({}))
+
+        options = [
+            selector.SelectOptionDict(value=e.entry_id, label=e.title or f"Reef ICP ({e.entry_id[:8]})")
+            for e in entries
+        ]
+        field = vol.Optional(
+            CONF_REEF_ICP_ENTRY,
+            description=self._suggested(CONF_REEF_ICP_ENTRY),
         )
+        return self.async_show_form(
+            step_id="reef_icp",
+            data_schema=vol.Schema({
+                field: selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                )
+            }),
+        )
+
+    async def async_step_reef_icp_unavailable(self, user_input=None) -> FlowResult:
+        if user_input is not None:
+            return self.async_create_entry(title="", data=dict(self._options))
+        return self.async_show_form(step_id="reef_icp_unavailable", data_schema=vol.Schema({}))
+
+    async def async_step_limits(self, user_input=None) -> FlowResult:
+        return self.async_show_menu(step_id="limits",
+            menu_options=["temperature_limits", "ph_limits", "salinity_limits"])
 
     async def async_step_temperature_limits(self, user_input=None) -> FlowResult:
         definitions = [
@@ -128,17 +142,9 @@ class ReefControlOptionsFlow(config_entries.OptionsFlow):
             (CONF_TEMPERATURE_CRITICAL_MIN, DEFAULT_TEMPERATURE_CRITICAL_MIN, 0, 50, 0.1, "°C"),
             (CONF_TEMPERATURE_CRITICAL_MAX, DEFAULT_TEMPERATURE_CRITICAL_MAX, 0, 50, 0.1, "°C"),
         ]
-        return await self._limits_form(
-            "temperature_limits", user_input, definitions,
-            (
-                CONF_TEMPERATURE_CRITICAL_MIN, CONF_TEMPERATURE_MIN,
-                CONF_TEMPERATURE_MAX, CONF_TEMPERATURE_CRITICAL_MAX,
-            ),
-            (
-                DEFAULT_TEMPERATURE_CRITICAL_MIN, DEFAULT_TEMPERATURE_MIN,
-                DEFAULT_TEMPERATURE_MAX, DEFAULT_TEMPERATURE_CRITICAL_MAX,
-            ),
-        )
+        return await self._limits_form("temperature_limits", user_input, definitions,
+            (CONF_TEMPERATURE_CRITICAL_MIN, CONF_TEMPERATURE_MIN, CONF_TEMPERATURE_MAX, CONF_TEMPERATURE_CRITICAL_MAX),
+            (DEFAULT_TEMPERATURE_CRITICAL_MIN, DEFAULT_TEMPERATURE_MIN, DEFAULT_TEMPERATURE_MAX, DEFAULT_TEMPERATURE_CRITICAL_MAX))
 
     async def async_step_ph_limits(self, user_input=None) -> FlowResult:
         definitions = [
@@ -147,11 +153,9 @@ class ReefControlOptionsFlow(config_entries.OptionsFlow):
             (CONF_PH_CRITICAL_MIN, DEFAULT_PH_CRITICAL_MIN, 0, 14, 0.01, None),
             (CONF_PH_CRITICAL_MAX, DEFAULT_PH_CRITICAL_MAX, 0, 14, 0.01, None),
         ]
-        return await self._limits_form(
-            "ph_limits", user_input, definitions,
+        return await self._limits_form("ph_limits", user_input, definitions,
             (CONF_PH_CRITICAL_MIN, CONF_PH_MIN, CONF_PH_MAX, CONF_PH_CRITICAL_MAX),
-            (DEFAULT_PH_CRITICAL_MIN, DEFAULT_PH_MIN, DEFAULT_PH_MAX, DEFAULT_PH_CRITICAL_MAX),
-        )
+            (DEFAULT_PH_CRITICAL_MIN, DEFAULT_PH_MIN, DEFAULT_PH_MAX, DEFAULT_PH_CRITICAL_MAX))
 
     async def async_step_salinity_limits(self, user_input=None) -> FlowResult:
         definitions = [
@@ -160,17 +164,9 @@ class ReefControlOptionsFlow(config_entries.OptionsFlow):
             (CONF_SALINITY_CRITICAL_MIN, DEFAULT_SALINITY_CRITICAL_MIN, 0, 100, 0.1, "ppt"),
             (CONF_SALINITY_CRITICAL_MAX, DEFAULT_SALINITY_CRITICAL_MAX, 0, 100, 0.1, "ppt"),
         ]
-        return await self._limits_form(
-            "salinity_limits", user_input, definitions,
-            (
-                CONF_SALINITY_CRITICAL_MIN, CONF_SALINITY_MIN,
-                CONF_SALINITY_MAX, CONF_SALINITY_CRITICAL_MAX,
-            ),
-            (
-                DEFAULT_SALINITY_CRITICAL_MIN, DEFAULT_SALINITY_MIN,
-                DEFAULT_SALINITY_MAX, DEFAULT_SALINITY_CRITICAL_MAX,
-            ),
-        )
+        return await self._limits_form("salinity_limits", user_input, definitions,
+            (CONF_SALINITY_CRITICAL_MIN, CONF_SALINITY_MIN, CONF_SALINITY_MAX, CONF_SALINITY_CRITICAL_MAX),
+            (DEFAULT_SALINITY_CRITICAL_MIN, DEFAULT_SALINITY_MIN, DEFAULT_SALINITY_MAX, DEFAULT_SALINITY_CRITICAL_MAX))
 
     async def _limits_form(self, step_id, user_input, definitions, keys, defaults):
         errors = {}
@@ -179,49 +175,28 @@ class ReefControlOptionsFlow(config_entries.OptionsFlow):
             if values[0] <= values[1] < values[2] <= values[3]:
                 return await self._save(user_input)
             errors["base"] = "invalid_limits"
-
         fields = {}
         for args in definitions:
             key, value = self._number(*args)
             fields[key] = value
-
-        return self.async_show_form(
-            step_id=step_id,
-            data_schema=vol.Schema(fields),
-            errors=errors,
-        )
+        return self.async_show_form(step_id=step_id, data_schema=vol.Schema(fields), errors=errors)
 
     async def async_step_operating_modes(self, user_input=None) -> FlowResult:
         if user_input is not None:
             return await self._save(user_input)
-
         fields = {}
-        key, value = self._number(
-            CONF_FEEDING_DURATION, DEFAULT_FEEDING_DURATION, 1, 120, 1, "min"
-        )
+        key, value = self._number(CONF_FEEDING_DURATION, DEFAULT_FEEDING_DURATION, 1, 120, 1, "min")
         fields[key] = value
-        key, value = self._number(
-            CONF_SKIMMER_DELAY, DEFAULT_SKIMMER_DELAY, 0, 120, 1, "min"
-        )
+        key, value = self._number(CONF_SKIMMER_DELAY, DEFAULT_SKIMMER_DELAY, 0, 120, 1, "min")
         fields[key] = value
-
         bools = {
-            CONF_FEEDING_PAUSE_SKIMMER: True,
-            CONF_FEEDING_PAUSE_RETURN_PUMP: False,
-            CONF_FEEDING_PAUSE_FLOW_PUMP: True,
-            CONF_FEEDING_PAUSE_UVC: False,
-            CONF_FEEDING_PAUSE_ATO: True,
-            CONF_MAINTENANCE_PAUSE_SKIMMER: True,
-            CONF_MAINTENANCE_PAUSE_RETURN_PUMP: True,
-            CONF_MAINTENANCE_PAUSE_FLOW_PUMP: True,
-            CONF_MAINTENANCE_PAUSE_UVC: True,
-            CONF_MAINTENANCE_PAUSE_ATO: True,
-            CONF_MAINTENANCE_PAUSE_HEATER: True,
-            CONF_MAINTENANCE_PAUSE_LIGHT: False,
+            CONF_FEEDING_PAUSE_SKIMMER: True, CONF_FEEDING_PAUSE_RETURN_PUMP: False,
+            CONF_FEEDING_PAUSE_FLOW_PUMP: True, CONF_FEEDING_PAUSE_UVC: False,
+            CONF_FEEDING_PAUSE_ATO: True, CONF_MAINTENANCE_PAUSE_SKIMMER: True,
+            CONF_MAINTENANCE_PAUSE_RETURN_PUMP: True, CONF_MAINTENANCE_PAUSE_FLOW_PUMP: True,
+            CONF_MAINTENANCE_PAUSE_UVC: True, CONF_MAINTENANCE_PAUSE_ATO: True,
+            CONF_MAINTENANCE_PAUSE_HEATER: True, CONF_MAINTENANCE_PAUSE_LIGHT: False,
         }
         for key, default in bools.items():
             fields[vol.Optional(key, default=self._options.get(key, default))] = bool
-
-        return self.async_show_form(
-            step_id="operating_modes", data_schema=vol.Schema(fields)
-        )
+        return self.async_show_form(step_id="operating_modes", data_schema=vol.Schema(fields))
