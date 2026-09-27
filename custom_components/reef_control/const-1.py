@@ -16,7 +16,7 @@ CONF_PH_ENTITY = "ph_entity"
 CONF_SALINITY_ENTITY = "salinity_entity"
 
 CONF_REEF_ICP_ENTRY = "reef_icp_entry"
-REEF_ICP_DOMAIN = "oceamo_icp"
+REEF_ICP_DOMAIN = "reef_icp"
 
 CONF_TEMPERATURE_MIN = "temperature_min"
 CONF_TEMPERATURE_MAX = "temperature_max"
