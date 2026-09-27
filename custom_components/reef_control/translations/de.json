@@ -37,7 +37,8 @@
           "operating_modes": "Betriebsmodi",
           "temperature_control": "Temperaturregelung",
           "reef_icp": "Reef ICP",
-          "ato_control": "Wasserstandsregelung"
+          "ato_control": "Wasserstandsregelung",
+          "equipment_control": "Techniksteuerung"
         }
       },
       "entities": {
@@ -219,6 +220,26 @@
           "ato_confirm_delay": "Der Wasserstand muss so lange durchgehend als niedrig erkannt werden, bevor die Pumpe startet. Das filtert Wellen und kurze Sensorwechsel.",
           "ato_max_runtime": "Harte Sicherheitsgrenze für einen Nachfüllvorgang. Wird sie erreicht, schaltet Reef Control die Pumpe aus und verriegelt die Regelung, bis du sie bewusst aus- und wieder einschaltest.",
           "ato_cooldown": "Mindestwartezeit nach einer abgeschlossenen Nachfüllung, bevor erneut nachgefüllt werden darf."
+        }
+      },
+      "equipment_control": {
+        "title": "Techniksteuerung",
+        "description": "Verknüpfe Rückförderpumpe, Abschäumer, UV-C und Nachfüllanlage logisch miteinander. Fällt die Rückförderung aus oder wird ausgeschaltet, kann Reef Control abhängige Geräte sicher pausieren und kontrolliert wieder starten.",
+        "data": {
+          "equipment_control_enabled": "Techniksteuerung aktivieren",
+          "return_master_skimmer": "Abschäumer von Rückförderpumpe abhängig",
+          "return_master_uvc": "UV-C von Rückförderpumpe abhängig",
+          "return_master_ato": "Nachfüllanlage von Rückförderpumpe abhängig",
+          "equipment_skimmer_delay": "Abschäumer-Wiederanlaufverzögerung",
+          "equipment_uvc_delay": "UV-C-Wiederanlaufverzögerung"
+        },
+        "data_description": {
+          "equipment_control_enabled": "Aktiviert die geräteübergreifende Sicherheits- und Wiederanlauflogik.",
+          "return_master_skimmer": "Schaltet den Abschäumer aus, sobald die Rückförderpumpe nicht läuft. Nach Rückkehr der Rückförderung startet er erst nach der eingestellten Verzögerung.",
+          "return_master_uvc": "Schaltet UV-C aus, wenn keine Rückförderung vorhanden ist, und startet UV-C anschließend verzögert neu.",
+          "return_master_ato": "Sperrt die Nachfüllpumpe bei ausgeschalteter Rückförderpumpe. Nach dem Wiederanlauf wird die automatische Wasserstandsregelung neu ausgewertet.",
+          "equipment_skimmer_delay": "Wartezeit nach dem Start der Rückförderpumpe, bevor ein zuvor automatisch pausierter Abschäumer wieder eingeschaltet wird.",
+          "equipment_uvc_delay": "Wartezeit nach dem Start der Rückförderpumpe, bevor ein zuvor automatisch pausiertes UV-C-Gerät wieder eingeschaltet wird."
         }
       }
     },
