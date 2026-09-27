@@ -1,4 +1,3 @@
-
 {
   "title": "Reef Control",
   "config": {
@@ -17,6 +16,25 @@
     },
     "abort": {
       "already_configured": "This aquarium is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Assign aquarium entities",
+        "description": "Assign existing Home Assistant entities to the roles in this aquarium. All assignments are optional.",
+        "data": {
+          "temperature_entity": "Temperature",
+          "ph_entity": "pH",
+          "salinity_entity": "Salinity",
+          "skimmer_entity": "Protein skimmer",
+          "return_pump_entity": "Return pump",
+          "flow_pump_entity": "Flow pump",
+          "light_entity": "Aquarium lighting",
+          "heater_entity": "Heater",
+          "ato_entity": "Auto top-off (ATO)"
+        }
+      }
     }
   }
 }
