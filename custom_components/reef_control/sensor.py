@@ -15,6 +15,7 @@ from .const import *
 async def async_setup_entry(hass, entry, async_add_entities):
     async_add_entities([
         ReefControlAquariumSensor(entry), ReefControlOperatingStatusSensor(hass,entry),
+        ReefControlTemperatureControlStatusSensor(hass,entry),
         ReefControlRemainingTimeSensor(hass,entry),
         ReefControlParameterStatusSensor(hass,entry,"temperature"),
         ReefControlParameterStatusSensor(hass,entry,"ph"),
@@ -62,6 +63,20 @@ class ReefControlOperatingStatusSensor(ReefControlRuntimeSensor):
     @property
     def icon(self): return {"Wartung":"mdi:tools","Fütterung":"mdi:fish","Abschäumer-Verzögerung":"mdi:timer-sand"}.get(self.native_value,"mdi:check-circle-outline")
 
+class ReefControlTemperatureControlStatusSensor(ReefControlRuntimeSensor):
+    _attr_name="Temperaturregelung Status"
+    _attr_icon="mdi:thermostat"
+    _attr_entity_category=EntityCategory.DIAGNOSTIC
+    def __init__(self,hass,entry):
+        super().__init__(hass,entry); self._attr_unique_id=f"{entry.entry_id}_temperature_control_status"
+    @property
+    def native_value(self):
+        return self._runtime().get("temperature_control_status","Deaktiviert")
+    @property
+    def extra_state_attributes(self):
+        controller=self._runtime().get("temperature_control_switch")
+        return controller.extra_state_attributes if controller else {}
+
 class ReefControlRemainingTimeSensor(ReefControlRuntimeSensor):
     _attr_icon="mdi:timer-outline"
     def __init__(self,hass,entry): super().__init__(hass,entry); self._attr_unique_id=f"{entry.entry_id}_feeding_remaining"; self._attr_name="Restzeit"
@@ -96,14 +111,36 @@ def evaluate(hass,entry,param):
     return status,value,{"source_entity":entity_id,"value":value,"unit":st.attributes.get("unit_of_measurement"),"minimum":mn,"maximum":mx,"critical_minimum":cmn,"critical_maximum":cmx}
 
 class ReefControlParameterStatusSensor(ReefControlRuntimeSensor):
-    def __init__(self,hass,entry,param): super().__init__(hass,entry); self.param=param; self._attr_unique_id=f"{entry.entry_id}_{param}_status"; self._attr_name=PARAMS[param][1]
+    def __init__(self,hass,entry,param):
+        super().__init__(hass,entry)
+        self.param=param
+        self._attr_unique_id=f"{entry.entry_id}_{param}_status"
+        self._attr_name=PARAMS[param][1]
+
     @property
-    def native_value(self): return evaluate(self.hass,self._entry,self.param)[0]
+    def native_value(self):
+        return evaluate(self.hass,self._entry,self.param)[1]
+
     @property
-    def extra_state_attributes(self): return evaluate(self.hass,self._entry,self.param)[2]
+    def native_unit_of_measurement(self):
+        return evaluate(self.hass,self._entry,self.param)[2].get("unit")
+
+    @property
+    def extra_state_attributes(self):
+        status,value,attrs=evaluate(self.hass,self._entry,self.param)
+        if status in ("Kritisch niedrig","Zu niedrig"):
+            display_status="Zu niedrig"
+        elif status in ("Kritisch hoch","Zu hoch"):
+            display_status="Zu hoch"
+        elif status=="Normal":
+            display_status="OK"
+        else:
+            display_status=status
+        return {**attrs,"status":display_status}
+
     @property
     def icon(self):
-        status=self.native_value
+        status=evaluate(self.hass,self._entry,self.param)[0]
         if status.startswith("Kritisch"): return "mdi:alert-octagon"
         if status in ("Zu niedrig","Zu hoch"): return "mdi:alert"
         if status=="Normal": return PARAMS[self.param][2]
@@ -138,14 +175,12 @@ def _icp_snapshot(hass, entry):
     registry = er.async_get(hass)
     registry_entries = er.async_entries_for_config_entry(registry, selected)
 
-    # Reef ICP exposes its compact analysis summary through the report entity.
     report_state = None
     for reg in registry_entries:
         if reg.unique_id == f"{selected}_report":
             report_state = hass.states.get(reg.entity_id)
             break
 
-    # Fallback for older Reef ICP versions: locate the summary entity by attributes.
     if report_state is None:
         for reg in registry_entries:
             state = hass.states.get(reg.entity_id)
@@ -157,550 +192,181 @@ def _icp_snapshot(hass, entry):
                 break
 
     if report_state is None:
-        return {
-            "connected": True,
-            "status": "Keine Analyse",
-            "entry_id": selected,
-            "aquarium": icp_entry.title,
-            "provider": None,
-            "analysis_date": None,
-            "issue_count": 0,
-            "affected": [],
-        }
+        return {"connected":True,"status":"Keine Analyse","entry_id":selected,"aquarium":icp_entry.title,"provider":None,"analysis_date":None,"issue_count":0,"affected":[]}
 
     if report_state.state in (STATE_UNKNOWN, STATE_UNAVAILABLE):
-        return {
-            "connected": True,
-            "status": "Nicht verfügbar",
-            "entry_id": selected,
-            "aquarium": icp_entry.title,
-            "provider": None,
-            "analysis_date": None,
-            "issue_count": 0,
-            "affected": [],
-        }
+        return {"connected":True,"status":"Nicht verfügbar","entry_id":selected,"aquarium":icp_entry.title,"provider":None,"analysis_date":None,"issue_count":0,"affected":[]}
 
-    attrs = report_state.attributes
-
-    analysis_date = attrs.get("analysis_date")
-    analysis_age_days = None
+    attrs=report_state.attributes
+    analysis_date=attrs.get("analysis_date")
+    analysis_age_days=None
     if analysis_date:
         try:
-            parsed_date = datetime.fromisoformat(str(analysis_date)).date()
-            analysis_age_days = max(
-                0, (datetime.now().astimezone().date() - parsed_date).days
-            )
-        except (TypeError, ValueError):
-            analysis_age_days = None
+            parsed_date=datetime.fromisoformat(str(analysis_date)).date()
+            analysis_age_days=max(0,(datetime.now().astimezone().date()-parsed_date).days)
+        except (TypeError,ValueError):
+            analysis_age_days=None
 
-    raw_status = str(report_state.state).lower()
-    status = {
-        "ok": "Gut",
-        "good": "Gut",
-        "warning": "Auffällig",
-        "critical": "Kritisch",
-        "unknown": "Unklar",
-    }.get(raw_status, str(report_state.state))
-
-    status_counts = attrs.get("status_counts") or {}
+    raw_status=str(report_state.state).lower()
+    status={"ok":"Gut","good":"Gut","warning":"Auffällig","critical":"Kritisch","unknown":"Unklar"}.get(raw_status,str(report_state.state))
+    status_counts=attrs.get("status_counts") or {}
     try:
-        issue_count = int(status_counts.get("warning", 0) or 0) + int(
-            status_counts.get("critical", 0) or 0
-        )
-    except (TypeError, ValueError):
-        issue_count = 0
+        issue_count=int(status_counts.get("warning",0) or 0)+int(status_counts.get("critical",0) or 0)
+    except (TypeError,ValueError):
+        issue_count=0
 
-    affected = []
+    affected=[]
     for measurement in attrs.get("measurements") or []:
-        if not isinstance(measurement, dict):
-            continue
-        measurement_status = measurement.get("status") or {}
-        if isinstance(measurement_status, dict):
-            severity = str(measurement_status.get("severity") or "").lower()
-        else:
-            severity = str(measurement_status).lower()
+        if not isinstance(measurement,dict): continue
+        measurement_status=measurement.get("status") or {}
+        severity=str(measurement_status.get("severity") or "").lower() if isinstance(measurement_status,dict) else str(measurement_status).lower()
+        if severity not in ("warning","critical"): continue
+        name=measurement.get("name") or measurement.get("key")
+        if name and str(name) not in affected: affected.append(str(name))
 
-        if severity not in ("warning", "critical"):
-            continue
-
-        name = measurement.get("name") or measurement.get("key")
-        if name and str(name) not in affected:
-            affected.append(str(name))
-
-    return {
-        "connected": True,
-        "status": status,
-        "entry_id": selected,
-        "aquarium": icp_entry.title,
-        "provider": attrs.get("provider_name") or attrs.get("provider"),
-        "analysis_date": analysis_date,
-        "analysis_age_days": analysis_age_days,
-        "issue_count": issue_count,
-        "affected": affected,
-        "measurements": attrs.get("measurements") or [],
-    }
-
+    return {"connected":True,"status":status,"entry_id":selected,"aquarium":icp_entry.title,"provider":attrs.get("provider_name") or attrs.get("provider"),"analysis_date":analysis_date,"analysis_age_days":analysis_age_days,"issue_count":issue_count,"affected":affected,"measurements":attrs.get("measurements") or []}
 
 def _manual_measurement_snapshot(hass, entry):
-    """Collect Reef Control manual measurements from their number entities."""
-    registry = er.async_get(hass)
-    registry_entries = er.async_entries_for_config_entry(registry, entry.entry_id)
-    result = {}
-
-    for key, definition in MANUAL_MEASUREMENTS.items():
-        unique_id = f"{entry.entry_id}_manual_{key}"
-        state = None
-
+    registry=er.async_get(hass)
+    registry_entries=er.async_entries_for_config_entry(registry,entry.entry_id)
+    result={}
+    for key,definition in MANUAL_MEASUREMENTS.items():
+        unique_id=f"{entry.entry_id}_manual_{key}"
+        state=None
         for reg in registry_entries:
-            if reg.unique_id == unique_id:
-                state = hass.states.get(reg.entity_id)
-                break
-
-        item = {
-            "value": None,
-            "unit": definition["unit"],
-            "source": "manual",
-            "last_measurement": None,
-            "age_days": None,
-            "freshness": "missing",
-        }
-
-        if state is not None and state.state not in (STATE_UNKNOWN, STATE_UNAVAILABLE):
-            try:
-                item["value"] = float(str(state.state).replace(",", "."))
-            except (TypeError, ValueError):
-                item["value"] = None
-
-            item["last_measurement"] = state.attributes.get("last_measurement")
-            item["age_days"] = state.attributes.get("measurement_age_days")
-            item["freshness"] = state.attributes.get(
-                "measurement_freshness", "missing"
-            )
-
-        result[key] = item
-
+            if reg.unique_id==unique_id:
+                state=hass.states.get(reg.entity_id); break
+        item={"value":None,"unit":definition["unit"],"source":"manual","last_measurement":None,"age_days":None,"freshness":"missing"}
+        if state is not None and state.state not in (STATE_UNKNOWN,STATE_UNAVAILABLE):
+            try:item["value"]=float(str(state.state).replace(",","."))
+            except (TypeError,ValueError):item["value"]=None
+            item["last_measurement"]=state.attributes.get("last_measurement")
+            item["age_days"]=state.attributes.get("measurement_age_days")
+            item["freshness"]=state.attributes.get("measurement_freshness","missing")
+        result[key]=item
     return result
 
-
-ICP_MEASUREMENT_KEYS = {
-    # Reef ICP uses German entity names for some values, while the compact
-    # report may use provider-independent/English keys. Support both.
-    "kh": {
-        "kh",
-        "alkalinity",
-        "alkalinitat",
-        "alkalinität",
-        "carbonate_hardness",
-    },
-    "calcium": {"calcium", "ca"},
-    "magnesium": {"magnesium", "mg"},
-    "nitrate": {"nitrate", "nitrat", "no3"},
-    "phosphate": {
-        "phosphate",
-        "phosphat",
-        "po4",
-        "phosphate_photometric",
-        "phosphat_photometrisch",
-    },
+ICP_MEASUREMENT_KEYS={
+    "kh":{"kh","alkalinity","alkalinitat","alkalinität","carbonate_hardness"},
+    "calcium":{"calcium","ca"},"magnesium":{"magnesium","mg"},
+    "nitrate":{"nitrate","nitrat","no3"},
+    "phosphate":{"phosphate","phosphat","po4","phosphate_photometric","phosphat_photometrisch"},
 }
-
-
-ICP_ENTITY_SUFFIXES = {
-    "kh": ("_alkalinitat", "_alkalinity", "_kh"),
-    "calcium": ("_calcium",),
-    "magnesium": ("_magnesium",),
-    "nitrate": ("_nitrat", "_nitrate"),
-    # Deliberately do NOT use Gesamtphosphor (ICP) as PO4. Reef Control only
-    # accepts the actual photometric phosphate value for the phosphate field.
-    "phosphate": (
-        "_phosphat_photometrisch",
-        "_phosphate_photometric",
-        "_phosphat",
-        "_phosphate",
-    ),
+ICP_ENTITY_SUFFIXES={
+    "kh":("_alkalinitat","_alkalinity","_kh"),"calcium":("_calcium",),
+    "magnesium":("_magnesium",),"nitrate":("_nitrat","_nitrate"),
+    "phosphate":("_phosphat_photometrisch","_phosphate_photometric","_phosphat","_phosphate"),
 }
-
-
 def _normalized_measurement_key(value):
-    return (
-        str(value or "")
-        .strip()
-        .lower()
-        .replace("ä", "a")
-        .replace("ö", "o")
-        .replace("ü", "u")
-        .replace("ß", "ss")
-        .replace(" ", "_")
-        .replace("-", "_")
-        .replace("(", "")
-        .replace(")", "")
-    )
+    return str(value or "").strip().lower().replace("ä","a").replace("ö","o").replace("ü","u").replace("ß","ss").replace(" ","_").replace("-","_").replace("(","").replace(")","")
 
-
-def _reef_icp_entity_values(hass, entry):
-    """Read important water values directly from linked Reef ICP entities.
-
-    This is a compatibility fallback for values that are exposed as normal
-    Reef ICP sensor entities but are absent or named differently in the
-    compact report measurements.
-    """
-    selected = entry.options.get(CONF_REEF_ICP_ENTRY)
-    if not selected:
-        return {}
-
-    registry = er.async_get(hass)
-    registry_entries = er.async_entries_for_config_entry(registry, selected)
-    result = {}
-
+def _reef_icp_entity_values(hass,entry):
+    selected=entry.options.get(CONF_REEF_ICP_ENTRY)
+    if not selected:return {}
+    registry=er.async_get(hass); registry_entries=er.async_entries_for_config_entry(registry,selected); result={}
     for reg in registry_entries:
-        state = hass.states.get(reg.entity_id)
-        if state is None or state.state in (STATE_UNKNOWN, STATE_UNAVAILABLE):
-            continue
-
-        object_id = _normalized_measurement_key(reg.entity_id.split(".", 1)[-1])
-
-        target = None
-        for key, suffixes in ICP_ENTITY_SUFFIXES.items():
-            if any(object_id.endswith(suffix) for suffix in suffixes):
-                target = key
-                break
-
-        if target is None:
-            continue
-
-        try:
-            value = float(str(state.state).replace(",", "."))
-        except (TypeError, ValueError):
-            # "unknown" phosphate, for example, must remain unavailable.
-            continue
-
-        result[target] = {
-            "value": value,
-            "unit": state.attributes.get("unit_of_measurement")
-            or MANUAL_MEASUREMENTS[target]["unit"],
-            "status": state.attributes.get("status"),
-            "source_entity": reg.entity_id,
-        }
-
+        state=hass.states.get(reg.entity_id)
+        if state is None or state.state in (STATE_UNKNOWN,STATE_UNAVAILABLE):continue
+        object_id=_normalized_measurement_key(reg.entity_id.split(".",1)[-1]); target=None
+        for key,suffixes in ICP_ENTITY_SUFFIXES.items():
+            if any(object_id.endswith(suffix) for suffix in suffixes):target=key;break
+        if target is None:continue
+        try:value=float(str(state.state).replace(",","."))
+        except (TypeError,ValueError):continue
+        result[target]={"value":value,"unit":state.attributes.get("unit_of_measurement") or MANUAL_MEASUREMENTS[target]["unit"],"status":state.attributes.get("status"),"source_entity":reg.entity_id}
     return result
 
-
-def _icp_measurement_snapshot(hass, entry):
-    """Extract Reef Control core water values from the linked Reef ICP report."""
-    snap = _icp_snapshot(hass, entry)
-    result = {}
-
-    for key, definition in MANUAL_MEASUREMENTS.items():
-        result[key] = {
-            "value": None,
-            "unit": definition["unit"],
-            "source": "reef_icp",
-            "analysis_date": snap.get("analysis_date"),
-            "age_days": snap.get("analysis_age_days"),
-            "freshness": "missing",
-            "status": None,
-        }
-
-    if not snap.get("connected"):
-        return result
-
-    age = snap.get("analysis_age_days")
-    if age is None:
-        freshness = "unknown"
-    elif age <= 30:
-        freshness = "fresh"
-    elif age <= 90:
-        freshness = "aging"
-    else:
-        freshness = "stale"
-
-    aliases = {
-        alias: target
-        for target, alias_set in ICP_MEASUREMENT_KEYS.items()
-        for alias in alias_set
-    }
-
+def _icp_measurement_snapshot(hass,entry):
+    snap=_icp_snapshot(hass,entry); result={}
+    for key,definition in MANUAL_MEASUREMENTS.items():
+        result[key]={"value":None,"unit":definition["unit"],"source":"reef_icp","analysis_date":snap.get("analysis_date"),"age_days":snap.get("analysis_age_days"),"freshness":"missing","status":None}
+    if not snap.get("connected"):return result
+    age=snap.get("analysis_age_days")
+    freshness="unknown" if age is None else ("fresh" if age<=30 else ("aging" if age<=90 else "stale"))
+    aliases={alias:target for target,alias_set in ICP_MEASUREMENT_KEYS.items() for alias in alias_set}
     for measurement in snap.get("measurements") or []:
-        if not isinstance(measurement, dict):
-            continue
-
-        # Reef ICP may also contain RO/osmosis measurements. Reef Control's
-        # aquarium state must use only the aquarium sample here.
-        if str(measurement.get("category") or "").lower() == "osmosis":
-            continue
-
-        target = aliases.get(_normalized_measurement_key(measurement.get("key")))
-        if target is None:
-            target = aliases.get(_normalized_measurement_key(measurement.get("name")))
-        if target is None:
-            continue
-
-        value = measurement.get("value")
-        if isinstance(value, bool):
-            continue
-        try:
-            value = float(value)
-        except (TypeError, ValueError):
-            continue
-
-        status = measurement.get("status")
-        severity = status.get("severity") if isinstance(status, dict) else status
-
-        result[target] = {
-            "value": value,
-            "unit": measurement.get("unit") or MANUAL_MEASUREMENTS[target]["unit"],
-            "source": "reef_icp",
-            "analysis_date": snap.get("analysis_date"),
-            "age_days": age,
-            "freshness": freshness,
-            "status": severity,
-        }
-
-    # Some Reef ICP values are exposed as dedicated HA entities even when the
-    # compact report does not contain a matching key. Fill only missing values
-    # from those entities so the report remains the primary interface.
-    for target, entity_value in _reef_icp_entity_values(hass, entry).items():
-        if result[target].get("value") is not None:
-            continue
-
-        result[target] = {
-            "value": entity_value["value"],
-            "unit": entity_value["unit"],
-            "source": "reef_icp",
-            "analysis_date": snap.get("analysis_date"),
-            "age_days": age,
-            "freshness": freshness,
-            "status": entity_value.get("status"),
-            "source_entity": entity_value.get("source_entity"),
-        }
-
+        if not isinstance(measurement,dict):continue
+        if str(measurement.get("category") or "").lower()=="osmosis":continue
+        target=aliases.get(_normalized_measurement_key(measurement.get("key"))) or aliases.get(_normalized_measurement_key(measurement.get("name")))
+        if target is None:continue
+        value=measurement.get("value")
+        if isinstance(value,bool):continue
+        try:value=float(value)
+        except (TypeError,ValueError):continue
+        status=measurement.get("status"); severity=status.get("severity") if isinstance(status,dict) else status
+        result[target]={"value":value,"unit":measurement.get("unit") or MANUAL_MEASUREMENTS[target]["unit"],"source":"reef_icp","analysis_date":snap.get("analysis_date"),"age_days":age,"freshness":freshness,"status":severity}
+    for target,entity_value in _reef_icp_entity_values(hass,entry).items():
+        if result[target].get("value") is not None:continue
+        result[target]={"value":entity_value["value"],"unit":entity_value["unit"],"source":"reef_icp","analysis_date":snap.get("analysis_date"),"age_days":age,"freshness":freshness,"status":entity_value.get("status"),"source_entity":entity_value.get("source_entity")}
     return result
 
-
-def _preferred_water_values(hass, entry):
-    """Build one current value per parameter from manual and Reef ICP sources."""
-    manual = _manual_measurement_snapshot(hass, entry)
-    icp = _icp_measurement_snapshot(hass, entry)
-    merged = {}
-
+def _preferred_water_values(hass,entry):
+    manual=_manual_measurement_snapshot(hass,entry); icp=_icp_measurement_snapshot(hass,entry); merged={}
     for key in MANUAL_MEASUREMENTS:
-        manual_item = manual[key]
-        icp_item = icp[key]
-        manual_has = manual_item.get("value") is not None
-        icp_has = icp_item.get("value") is not None
-
-        # Current hand measurements are the most useful day-to-day source.
-        if manual_has and manual_item.get("freshness") in ("fresh", "aging"):
-            selected = dict(manual_item)
-            reason = "manual_current"
-        # If the hand measurement is stale but ICP is still current, use ICP.
-        elif icp_has and icp_item.get("freshness") in ("fresh", "aging"):
-            selected = dict(icp_item)
-            reason = "icp_current"
-        # Keep stale data visible as a fallback instead of losing information.
-        elif manual_has:
-            selected = dict(manual_item)
-            reason = "manual_fallback"
-        elif icp_has:
-            selected = dict(icp_item)
-            reason = "icp_fallback"
-        else:
-            selected = {
-                "value": None,
-                "unit": MANUAL_MEASUREMENTS[key]["unit"],
-                "source": None,
-                "age_days": None,
-                "freshness": "missing",
-            }
-            reason = "missing"
-
-        selected["selection_reason"] = reason
-        selected["manual"] = manual_item
-        selected["reef_icp"] = icp_item
-        merged[key] = selected
-
+        manual_item=manual[key]; icp_item=icp[key]; manual_has=manual_item.get("value") is not None; icp_has=icp_item.get("value") is not None
+        if manual_has and manual_item.get("freshness") in ("fresh","aging"):selected=dict(manual_item);reason="manual_current"
+        elif icp_has and icp_item.get("freshness") in ("fresh","aging"):selected=dict(icp_item);reason="icp_current"
+        elif manual_has:selected=dict(manual_item);reason="manual_fallback"
+        elif icp_has:selected=dict(icp_item);reason="icp_fallback"
+        else:selected={"value":None,"unit":MANUAL_MEASUREMENTS[key]["unit"],"source":None,"age_days":None,"freshness":"missing"};reason="missing"
+        selected["selection_reason"]=reason;selected["manual"]=manual_item;selected["reef_icp"]=icp_item;merged[key]=selected
     return merged
 
-
 class ReefControlWaterValuesSensor(ReefControlRuntimeSensor):
-    """Unified overview of manual measurements and linked Reef ICP values."""
-
-    _attr_name = "Wasserwerte"
-    _attr_icon = "mdi:water-check"
-    _attr_entity_category = EntityCategory.DIAGNOSTIC
-
-    def __init__(self, hass, entry):
-        super().__init__(hass, entry)
-        self._attr_unique_id = f"{entry.entry_id}_water_values"
-
+    _attr_name="Wasserwerte";_attr_icon="mdi:water-check";_attr_entity_category=EntityCategory.DIAGNOSTIC
+    def __init__(self,hass,entry):super().__init__(hass,entry);self._attr_unique_id=f"{entry.entry_id}_water_values"
     @property
     def native_value(self):
-        values = _preferred_water_values(self.hass, self._entry)
-        available = [item for item in values.values() if item.get("value") is not None]
-
-        if not available:
-            return "Keine Messwerte"
-
-        stale = sum(1 for item in available if item.get("freshness") == "stale")
-        aging = sum(1 for item in available if item.get("freshness") == "aging")
-
-        if stale:
-            return f"{stale} veraltet"
-        if aging:
-            return f"{aging} älter"
+        values=_preferred_water_values(self.hass,self._entry);available=[item for item in values.values() if item.get("value") is not None]
+        if not available:return "Keine Messwerte"
+        stale=sum(1 for item in available if item.get("freshness")=="stale");aging=sum(1 for item in available if item.get("freshness")=="aging")
+        if stale:return f"{stale} veraltet"
+        if aging:return f"{aging} älter"
         return "Aktuell"
-
     @property
     def extra_state_attributes(self):
-        values = _preferred_water_values(self.hass, self._entry)
-        available = {
-            key: item
-            for key, item in values.items()
-            if item.get("value") is not None
-        }
-
-        return {
-            "available_count": len(available),
-            "fresh_count": sum(
-                1 for item in available.values() if item.get("freshness") == "fresh"
-            ),
-            "aging_count": sum(
-                1 for item in available.values() if item.get("freshness") == "aging"
-            ),
-            "stale_count": sum(
-                1 for item in available.values() if item.get("freshness") == "stale"
-            ),
-            "manual_source_count": sum(
-                1 for item in available.values() if item.get("source") == "manual"
-            ),
-            "reef_icp_source_count": sum(
-                1 for item in available.values() if item.get("source") == "reef_icp"
-            ),
-            "values": values,
-            "source_priority": (
-                "manual_current > reef_icp_current > "
-                "manual_fallback > reef_icp_fallback"
-            ),
-        }
-
+        values=_preferred_water_values(self.hass,self._entry);available={key:item for key,item in values.items() if item.get("value") is not None}
+        return {"available_count":len(available),"fresh_count":sum(1 for item in available.values() if item.get("freshness")=="fresh"),"aging_count":sum(1 for item in available.values() if item.get("freshness")=="aging"),"stale_count":sum(1 for item in available.values() if item.get("freshness")=="stale"),"manual_source_count":sum(1 for item in available.values() if item.get("source")=="manual"),"reef_icp_source_count":sum(1 for item in available.values() if item.get("source")=="reef_icp"),"values":values,"source_priority":"manual_current > reef_icp_current > manual_fallback > reef_icp_fallback"}
 
 class ReefControlIcpConnectionSensor(ReefControlRuntimeSensor):
-    _attr_name="Reef ICP"
-    _attr_entity_category=EntityCategory.DIAGNOSTIC
-    def __init__(self,hass,entry):
-        super().__init__(hass,entry); self._attr_unique_id=f"{entry.entry_id}_reef_icp_connection"
+    _attr_name="Reef ICP";_attr_entity_category=EntityCategory.DIAGNOSTIC
+    def __init__(self,hass,entry):super().__init__(hass,entry);self._attr_unique_id=f"{entry.entry_id}_reef_icp_connection"
     @property
-    def native_value(self):
-        return "Verbunden" if _icp_snapshot(self.hass,self._entry)["connected"] else "Nicht verbunden"
+    def native_value(self):return "Verbunden" if _icp_snapshot(self.hass,self._entry)["connected"] else "Nicht verbunden"
     @property
-    def icon(self):
-        return "mdi:link-variant" if self.native_value=="Verbunden" else "mdi:link-variant-off"
+    def icon(self):return "mdi:link-variant" if self.native_value=="Verbunden" else "mdi:link-variant-off"
     @property
     def extra_state_attributes(self):
-        snap=_icp_snapshot(self.hass,self._entry)
-        return {
-            "aquarium": snap.get("aquarium"),
-            "entry_id": snap.get("entry_id"),
-            "status": snap.get("status"),
-            "provider": snap.get("provider"),
-            "analysis_date": snap.get("analysis_date"),
-        }
+        snap=_icp_snapshot(self.hass,self._entry);return {"aquarium":snap.get("aquarium"),"entry_id":snap.get("entry_id"),"status":snap.get("status"),"provider":snap.get("provider"),"analysis_date":snap.get("analysis_date")}
 
 class ReefControlIcpSensor(ReefControlRuntimeSensor):
-    _attr_name="ICP"
-    _attr_icon="mdi:flask-outline"
-    def __init__(self,hass,entry):
-        super().__init__(hass,entry); self._attr_unique_id=f"{entry.entry_id}_reef_icp"
+    _attr_name="ICP";_attr_icon="mdi:flask-outline"
+    def __init__(self,hass,entry):super().__init__(hass,entry);self._attr_unique_id=f"{entry.entry_id}_reef_icp"
     @property
-    def native_value(self): return _icp_snapshot(self.hass,self._entry)["status"]
+    def native_value(self):return _icp_snapshot(self.hass,self._entry)["status"]
     @property
     def extra_state_attributes(self):
-        snap=_icp_snapshot(self.hass,self._entry)
-        return {
-            "aquarium": snap.get("aquarium"),
-            "provider": snap.get("provider"),
-            "analysis_date": snap.get("analysis_date"),
-            "analysis_age_days": snap.get("analysis_age_days"),
-            "issue_count": snap.get("issue_count", 0),
-            "affected": snap.get("affected", []),
-        }
+        snap=_icp_snapshot(self.hass,self._entry);return {"aquarium":snap.get("aquarium"),"provider":snap.get("provider"),"analysis_date":snap.get("analysis_date"),"analysis_age_days":snap.get("analysis_age_days"),"issue_count":snap.get("issue_count",0),"affected":snap.get("affected",[])}
 
 class ReefControlOverallStatusSensor(ReefControlRuntimeSensor):
     _attr_name="Gesamtstatus"
-
-    def __init__(self,hass,entry):
-        super().__init__(hass,entry)
-        self._attr_unique_id=f"{entry.entry_id}_overall_status"
-
-    def _results(self):
-        return {p:evaluate(self.hass,self._entry,p)[0] for p in PARAMS}
-
+    def __init__(self,hass,entry):super().__init__(hass,entry);self._attr_unique_id=f"{entry.entry_id}_overall_status"
+    def _results(self):return {p:evaluate(self.hass,self._entry,p)[0] for p in PARAMS}
     @property
     def native_value(self):
-        vals=list(self._results().values())
-        active=[v for v in vals if v!="Nicht konfiguriert"]
-        snap=_icp_snapshot(self.hass,self._entry)
-        icp=snap["status"] if snap["connected"] else "Nicht konfiguriert"
-        icp_age=snap.get("analysis_age_days")
-        icp_stale=icp_age is not None and icp_age > 90
-
-        if not active and icp=="Nicht konfiguriert":
-            return "Keine Messwerte"
-        if any(v.startswith("Kritisch") for v in active) or (
-            icp=="Kritisch" and not icp_stale
-        ):
-            return "Kritisch"
-        if any(v in ("Zu niedrig","Zu hoch","Nicht verfügbar") for v in active) or (
-            icp in ("Auffällig","Nicht verfügbar") and not icp_stale
-        ):
-            return "Warnung"
+        vals=list(self._results().values());active=[v for v in vals if v!="Nicht konfiguriert"];snap=_icp_snapshot(self.hass,self._entry);icp=snap["status"] if snap["connected"] else "Nicht konfiguriert";icp_age=snap.get("analysis_age_days");icp_stale=icp_age is not None and icp_age>90
+        if not active and icp=="Nicht konfiguriert":return "Keine Messwerte"
+        if any(v.startswith("Kritisch") for v in active) or (icp=="Kritisch" and not icp_stale):return "Kritisch"
+        if any(v in ("Zu niedrig","Zu hoch","Nicht verfügbar") for v in active) or (icp in ("Auffällig","Nicht verfügbar") and not icp_stale):return "Warnung"
         return "OK"
-
     @property
-    def icon(self):
-        return {
-            "OK":"mdi:check-circle",
-            "Warnung":"mdi:alert",
-            "Kritisch":"mdi:alert-octagon",
-            "Keine Messwerte":"mdi:gauge-empty",
-        }.get(self.native_value,"mdi:gauge")
-
+    def icon(self):return {"OK":"mdi:check-circle","Warnung":"mdi:alert","Kritisch":"mdi:alert-octagon","Keine Messwerte":"mdi:gauge-empty"}.get(self.native_value,"mdi:gauge")
     @property
     def extra_state_attributes(self):
-        results=self._results()
-        snap=_icp_snapshot(self.hass,self._entry)
-        icp=snap["status"] if snap["connected"] else "Nicht konfiguriert"
-
-        labels={"temperature":"Temperatur","ph":"pH","salinity":"Salinität"}
-        issues=[
-            f"{labels.get(param,param)}: {status}"
-            for param,status in results.items()
-            if status not in ("Normal","Nicht konfiguriert")
-        ]
-        icp_age=snap.get("analysis_age_days")
-        icp_stale=icp_age is not None and icp_age > 90
-        if icp not in ("Gut","Nicht konfiguriert","Keine Analyse") and not icp_stale:
-            issues.append(f"ICP: {icp}")
-
-        active_sources=sum(
-            1 for status in results.values() if status!="Nicht konfiguriert"
-        )
-        if snap["connected"]:
-            active_sources += 1
-
-        return {
-            "temperature":results["temperature"],
-            "ph":results["ph"],
-            "salinity":results["salinity"],
-            "icp":icp,
-            "icp_connected":snap["connected"],
-            "icp_provider":snap.get("provider"),
-            "icp_analysis_date":snap.get("analysis_date"),
-            "icp_analysis_age_days":snap.get("analysis_age_days"),
-            "icp_stale":icp_stale,
-            "icp_issue_count":snap.get("issue_count",0),
-            "active_status_sources":active_sources,
-            "issue_count":len(issues),
-            "issues":issues,
-        }
-
+        results=self._results();snap=_icp_snapshot(self.hass,self._entry);icp=snap["status"] if snap["connected"] else "Nicht konfiguriert";labels={"temperature":"Temperatur","ph":"pH","salinity":"Salinität"}
+        issues=[f"{labels.get(param,param)}: {status}" for param,status in results.items() if status not in ("Normal","Nicht konfiguriert")]
+        icp_age=snap.get("analysis_age_days");icp_stale=icp_age is not None and icp_age>90
+        if icp not in ("Gut","Nicht konfiguriert","Keine Analyse") and not icp_stale:issues.append(f"ICP: {icp}")
+        active_sources=sum(1 for status in results.values() if status!="Nicht konfiguriert")
+        if snap["connected"]:active_sources+=1
+        return {"temperature":results["temperature"],"ph":results["ph"],"salinity":results["salinity"],"icp":icp,"icp_connected":snap["connected"],"icp_provider":snap.get("provider"),"icp_analysis_date":snap.get("analysis_date"),"icp_analysis_age_days":snap.get("analysis_age_days"),"icp_stale":icp_stale,"icp_issue_count":snap.get("issue_count",0),"active_status_sources":active_sources,"issue_count":len(issues),"issues":issues}
