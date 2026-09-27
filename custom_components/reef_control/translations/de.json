@@ -54,20 +54,41 @@
       },
       "limits": {
         "title": "Grenzwerte",
-        "description": "Lege Normalbereich und kritische Grenzen für die Wasserwerte fest.",
+        "description": "Wähle den Wasserwert aus, dessen Grenzwerte du bearbeiten möchtest.",
+        "menu_options": {
+          "temperature_limits": "Temperatur",
+          "ph_limits": "pH",
+          "salinity_limits": "Salinität"
+        }
+      },
+      "temperature_limits": {
+        "title": "Temperatur",
+        "description": "Lege Normalbereich und kritische Grenzen für die Temperatur fest.",
         "data": {
-          "temperature_min": "Temperatur Untergrenze",
-          "temperature_max": "Temperatur Obergrenze",
-          "temperature_critical_min": "Temperatur kritische Untergrenze",
-          "temperature_critical_max": "Temperatur kritische Obergrenze",
-          "ph_min": "pH Untergrenze",
-          "ph_max": "pH Obergrenze",
-          "ph_critical_min": "pH kritische Untergrenze",
-          "ph_critical_max": "pH kritische Obergrenze",
-          "salinity_min": "Salinität Untergrenze",
-          "salinity_max": "Salinität Obergrenze",
-          "salinity_critical_min": "Salinität kritische Untergrenze",
-          "salinity_critical_max": "Salinität kritische Obergrenze"
+          "temperature_min": "Normalbereich von",
+          "temperature_max": "Normalbereich bis",
+          "temperature_critical_min": "Kritisch unter",
+          "temperature_critical_max": "Kritisch über"
+        }
+      },
+      "ph_limits": {
+        "title": "pH",
+        "description": "Lege Normalbereich und kritische Grenzen für den pH-Wert fest.",
+        "data": {
+          "ph_min": "Normalbereich von",
+          "ph_max": "Normalbereich bis",
+          "ph_critical_min": "Kritisch unter",
+          "ph_critical_max": "Kritisch über"
+        }
+      },
+      "salinity_limits": {
+        "title": "Salinität",
+        "description": "Lege Normalbereich und kritische Grenzen für die Salinität fest.",
+        "data": {
+          "salinity_min": "Normalbereich von",
+          "salinity_max": "Normalbereich bis",
+          "salinity_critical_min": "Kritisch unter",
+          "salinity_critical_max": "Kritisch über"
         }
       },
       "operating_modes": {
