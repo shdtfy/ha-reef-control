@@ -37,7 +37,8 @@
           "operating_modes": "Operating modes",
           "temperature_control": "Temperature control",
           "reef_icp": "Reef ICP",
-          "ato_control": "Water level control"
+          "ato_control": "Water level control",
+          "equipment_control": "Equipment control"
         }
       },
       "entities": {
@@ -219,6 +220,26 @@
           "ato_confirm_delay": "The water level must remain low for this long before the pump starts. This filters waves and brief sensor changes.",
           "ato_max_runtime": "Hard safety limit for one top-off cycle. When exceeded, the pump is switched off and the controller locks until you turn water level control off and on again.",
           "ato_cooldown": "Minimum waiting time after a completed top-off before another top-off may start."
+        }
+      },
+      "equipment_control": {
+        "title": "Equipment control",
+        "description": "Link the return pump, protein skimmer, UV-C and ATO logically. If the return pump stops, Reef Control can safely pause dependent equipment and restart it in a controlled sequence.",
+        "data": {
+          "equipment_control_enabled": "Enable equipment control",
+          "return_master_skimmer": "Make skimmer depend on return pump",
+          "return_master_uvc": "Make UV-C depend on return pump",
+          "return_master_ato": "Make ATO depend on return pump",
+          "equipment_skimmer_delay": "Skimmer restart delay",
+          "equipment_uvc_delay": "UV-C restart delay"
+        },
+        "data_description": {
+          "equipment_control_enabled": "Enables cross-device safety and restart logic.",
+          "return_master_skimmer": "Stops the protein skimmer whenever the return pump is not running and restarts it after the configured delay.",
+          "return_master_uvc": "Stops UV-C when return flow is unavailable and restarts it after the configured delay.",
+          "return_master_ato": "Blocks the ATO pump while the return pump is off. Automatic water-level control is re-evaluated after restart.",
+          "equipment_skimmer_delay": "Delay after the return pump starts before a controller-paused skimmer is restarted.",
+          "equipment_uvc_delay": "Delay after the return pump starts before controller-paused UV-C is restarted."
         }
       }
     },
