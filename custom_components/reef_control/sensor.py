@@ -282,23 +282,70 @@ class ReefControlIcpSensor(ReefControlRuntimeSensor):
 
 class ReefControlOverallStatusSensor(ReefControlRuntimeSensor):
     _attr_name="Gesamtstatus"
-    def __init__(self,hass,entry): super().__init__(hass,entry); self._attr_unique_id=f"{entry.entry_id}_overall_status"
-    def _results(self): return {p:evaluate(self.hass,self._entry,p)[0] for p in PARAMS}
+
+    def __init__(self,hass,entry):
+        super().__init__(hass,entry)
+        self._attr_unique_id=f"{entry.entry_id}_overall_status"
+
+    def _results(self):
+        return {p:evaluate(self.hass,self._entry,p)[0] for p in PARAMS}
+
     @property
     def native_value(self):
-        vals=list(self._results().values()); active=[v for v in vals if v!="Nicht konfiguriert"]
+        vals=list(self._results().values())
+        active=[v for v in vals if v!="Nicht konfiguriert"]
         snap=_icp_snapshot(self.hass,self._entry)
         icp=snap["status"] if snap["connected"] else "Nicht konfiguriert"
-        if not active and icp=="Nicht konfiguriert":return "Keine Messwerte"
-        if any(v.startswith("Kritisch") for v in active) or icp=="Kritisch":return "Kritisch"
-        if any(v in ("Zu niedrig","Zu hoch","Nicht verfügbar") for v in active) or icp in ("Auffällig","Nicht verfügbar"):return "Warnung"
+        if not active and icp=="Nicht konfiguriert":
+            return "Keine Messwerte"
+        if any(v.startswith("Kritisch") for v in active) or icp=="Kritisch":
+            return "Kritisch"
+        if any(v in ("Zu niedrig","Zu hoch","Nicht verfügbar") for v in active) or icp in ("Auffällig","Nicht verfügbar"):
+            return "Warnung"
         return "OK"
+
     @property
-    def icon(self): return {"OK":"mdi:check-circle","Warnung":"mdi:alert","Kritisch":"mdi:alert-octagon","Keine Messwerte":"mdi:gauge-empty"}.get(self.native_value,"mdi:gauge")
+    def icon(self):
+        return {
+            "OK":"mdi:check-circle",
+            "Warnung":"mdi:alert",
+            "Kritisch":"mdi:alert-octagon",
+            "Keine Messwerte":"mdi:gauge-empty",
+        }.get(self.native_value,"mdi:gauge")
+
     @property
     def extra_state_attributes(self):
-        results=self._results(); snap=_icp_snapshot(self.hass,self._entry)
+        results=self._results()
+        snap=_icp_snapshot(self.hass,self._entry)
         icp=snap["status"] if snap["connected"] else "Nicht konfiguriert"
-        issues=[f"{p}: {s}" for p,s in results.items() if s not in ("Normal","Nicht konfiguriert")]
-        if icp not in ("Gut","Nicht konfiguriert","Keine Analyse"): issues.append(f"ICP: {icp}")
-        return {"temperature":results["temperature"],"ph":results["ph"],"salinity":results["salinity"],"icp":icp,"issues":issues}
+
+        labels={"temperature":"Temperatur","ph":"pH","salinity":"Salinität"}
+        issues=[
+            f"{labels.get(param,param)}: {status}"
+            for param,status in results.items()
+            if status not in ("Normal","Nicht konfiguriert")
+        ]
+        if icp not in ("Gut","Nicht konfiguriert","Keine Analyse"):
+            issues.append(f"ICP: {icp}")
+
+        active_sources=sum(
+            1 for status in results.values() if status!="Nicht konfiguriert"
+        )
+        if snap["connected"]:
+            active_sources += 1
+
+        return {
+            "temperature":results["temperature"],
+            "ph":results["ph"],
+            "salinity":results["salinity"],
+            "icp":icp,
+            "icp_connected":snap["connected"],
+            "icp_provider":snap.get("provider"),
+            "icp_analysis_date":snap.get("analysis_date"),
+            "icp_analysis_age_days":snap.get("analysis_age_days"),
+            "icp_issue_count":snap.get("issue_count",0),
+            "active_status_sources":active_sources,
+            "issue_count":len(issues),
+            "issues":issues,
+        }
+
