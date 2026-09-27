@@ -283,16 +283,106 @@ def _manual_measurement_snapshot(hass, entry):
 
 
 ICP_MEASUREMENT_KEYS = {
-    "kh": {"kh", "alkalinity", "carbonate_hardness"},
+    # Reef ICP uses German entity names for some values, while the compact
+    # report may use provider-independent/English keys. Support both.
+    "kh": {
+        "kh",
+        "alkalinity",
+        "alkalinitat",
+        "alkalinität",
+        "carbonate_hardness",
+    },
     "calcium": {"calcium", "ca"},
     "magnesium": {"magnesium", "mg"},
-    "nitrate": {"nitrate", "no3"},
-    "phosphate": {"phosphate", "po4", "phosphate_photometric"},
+    "nitrate": {"nitrate", "nitrat", "no3"},
+    "phosphate": {
+        "phosphate",
+        "phosphat",
+        "po4",
+        "phosphate_photometric",
+        "phosphat_photometrisch",
+    },
+}
+
+
+ICP_ENTITY_SUFFIXES = {
+    "kh": ("_alkalinitat", "_alkalinity", "_kh"),
+    "calcium": ("_calcium",),
+    "magnesium": ("_magnesium",),
+    "nitrate": ("_nitrat", "_nitrate"),
+    # Deliberately do NOT use Gesamtphosphor (ICP) as PO4. Reef Control only
+    # accepts the actual photometric phosphate value for the phosphate field.
+    "phosphate": (
+        "_phosphat_photometrisch",
+        "_phosphate_photometric",
+        "_phosphat",
+        "_phosphate",
+    ),
 }
 
 
 def _normalized_measurement_key(value):
-    return str(value or "").strip().lower().replace(" ", "_").replace("-", "_")
+    return (
+        str(value or "")
+        .strip()
+        .lower()
+        .replace("ä", "a")
+        .replace("ö", "o")
+        .replace("ü", "u")
+        .replace("ß", "ss")
+        .replace(" ", "_")
+        .replace("-", "_")
+        .replace("(", "")
+        .replace(")", "")
+    )
+
+
+def _reef_icp_entity_values(hass, entry):
+    """Read important water values directly from linked Reef ICP entities.
+
+    This is a compatibility fallback for values that are exposed as normal
+    Reef ICP sensor entities but are absent or named differently in the
+    compact report measurements.
+    """
+    selected = entry.options.get(CONF_REEF_ICP_ENTRY)
+    if not selected:
+        return {}
+
+    registry = er.async_get(hass)
+    registry_entries = er.async_entries_for_config_entry(registry, selected)
+    result = {}
+
+    for reg in registry_entries:
+        state = hass.states.get(reg.entity_id)
+        if state is None or state.state in (STATE_UNKNOWN, STATE_UNAVAILABLE):
+            continue
+
+        object_id = _normalized_measurement_key(reg.entity_id.split(".", 1)[-1])
+
+        target = None
+        for key, suffixes in ICP_ENTITY_SUFFIXES.items():
+            if any(object_id.endswith(suffix) for suffix in suffixes):
+                target = key
+                break
+
+        if target is None:
+            continue
+
+        try:
+            value = float(str(state.state).replace(",", "."))
+        except (TypeError, ValueError):
+            # "unknown" phosphate, for example, must remain unavailable.
+            continue
+
+        result[target] = {
+            "value": value,
+            "unit": state.attributes.get("unit_of_measurement")
+            or MANUAL_MEASUREMENTS[target]["unit"],
+            "status": state.attributes.get("status"),
+            "source_entity": reg.entity_id,
+        }
+
+    return result
 
 
 def _icp_measurement_snapshot(hass, entry):
@@ -364,6 +454,24 @@ def _icp_measurement_snapshot(hass, entry):
             "age_days": age,
             "freshness": freshness,
             "status": severity,
+        }
+
+    # Some Reef ICP values are exposed as dedicated HA entities even when the
+    # compact report does not contain a matching key. Fill only missing values
+    # from those entities so the report remains the primary interface.
+    for target, entity_value in _reef_icp_entity_values(hass, entry).items():
+        if result[target].get("value") is not None:
+            continue
+
+        result[target] = {
+            "value": entity_value["value"],
+            "unit": entity_value["unit"],
+            "source": "reef_icp",
+            "analysis_date": snap.get("analysis_date"),
+            "age_days": age,
+            "freshness": freshness,
+            "status": entity_value.get("status"),
+            "source_entity": entity_value.get("source_entity"),
         }
 
     return result
