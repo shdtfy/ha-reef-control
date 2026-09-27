@@ -110,8 +110,8 @@
           "ph_critical_max": "Kritisch über"
         },
         "data_description": {
-          "ph_min": "Unterhalb dieses Wertes liegt den pH-Wert außerhalb des gewünschten Normalbereichs.",
-          "ph_max": "Oberhalb dieses Wertes liegt den pH-Wert außerhalb des gewünschten Normalbereichs.",
+          "ph_min": "Unterhalb dieses Wertes liegt der pH-Wert außerhalb des gewünschten Normalbereichs.",
+          "ph_max": "Oberhalb dieses Wertes liegt der pH-Wert außerhalb des gewünschten Normalbereichs.",
           "ph_critical_min": "Unterhalb dieses Wertes bewertet Reef Control den pH-Wert als kritisch.",
           "ph_critical_max": "Oberhalb dieses Wertes bewertet Reef Control den pH-Wert als kritisch."
         }
@@ -217,10 +217,10 @@
         "name": "Magnesium"
       },
       "manual_nitrate": {
-        "name": "Nitrate"
+        "name": "Nitrat"
       },
       "manual_phosphate": {
-        "name": "Phosphate"
+        "name": "Phosphat"
       }
     }
   }
