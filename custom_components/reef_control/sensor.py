@@ -3,10 +3,11 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 
 from homeassistant.components.sensor import SensorEntity
-from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
+from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN, EntityCategory
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.core import callback
 
 from .const import *
@@ -179,6 +180,18 @@ def _icp_snapshot(hass, entry):
         }
 
     attrs = report_state.attributes
+
+    analysis_date = attrs.get("analysis_date")
+    analysis_age_days = None
+    if analysis_date:
+        try:
+            parsed_date = datetime.fromisoformat(str(analysis_date)).date()
+            analysis_age_days = max(
+                0, (datetime.now().astimezone().date() - parsed_date).days
+            )
+        except (TypeError, ValueError):
+            analysis_age_days = None
+
     raw_status = str(report_state.state).lower()
     status = {
         "ok": "Gut",
@@ -219,7 +232,8 @@ def _icp_snapshot(hass, entry):
         "entry_id": selected,
         "aquarium": icp_entry.title,
         "provider": attrs.get("provider_name") or attrs.get("provider"),
-        "analysis_date": attrs.get("analysis_date"),
+        "analysis_date": analysis_date,
+        "analysis_age_days": analysis_age_days,
         "issue_count": issue_count,
         "affected": affected,
     }
@@ -227,6 +241,7 @@ def _icp_snapshot(hass, entry):
 
 class ReefControlIcpConnectionSensor(ReefControlRuntimeSensor):
     _attr_name="Reef ICP"
+    _attr_entity_category=EntityCategory.DIAGNOSTIC
     def __init__(self,hass,entry):
         super().__init__(hass,entry); self._attr_unique_id=f"{entry.entry_id}_reef_icp_connection"
     @property
@@ -241,6 +256,9 @@ class ReefControlIcpConnectionSensor(ReefControlRuntimeSensor):
         return {
             "aquarium": snap.get("aquarium"),
             "entry_id": snap.get("entry_id"),
+            "status": snap.get("status"),
+            "provider": snap.get("provider"),
+            "analysis_date": snap.get("analysis_date"),
         }
 
 class ReefControlIcpSensor(ReefControlRuntimeSensor):
@@ -257,6 +275,7 @@ class ReefControlIcpSensor(ReefControlRuntimeSensor):
             "aquarium": snap.get("aquarium"),
             "provider": snap.get("provider"),
             "analysis_date": snap.get("analysis_date"),
+            "analysis_age_days": snap.get("analysis_age_days"),
             "issue_count": snap.get("issue_count", 0),
             "affected": snap.get("affected", []),
         }
@@ -268,7 +287,8 @@ class ReefControlOverallStatusSensor(ReefControlRuntimeSensor):
     @property
     def native_value(self):
         vals=list(self._results().values()); active=[v for v in vals if v!="Nicht konfiguriert"]
-        icp=_icp_snapshot(self.hass,self._entry)["status"]
+        snap=_icp_snapshot(self.hass,self._entry)
+        icp=snap["status"] if snap["connected"] else "Nicht konfiguriert"
         if not active and icp=="Nicht konfiguriert":return "Keine Messwerte"
         if any(v.startswith("Kritisch") for v in active) or icp=="Kritisch":return "Kritisch"
         if any(v in ("Zu niedrig","Zu hoch","Nicht verfügbar") for v in active) or icp in ("Auffällig","Nicht verfügbar"):return "Warnung"
@@ -277,7 +297,8 @@ class ReefControlOverallStatusSensor(ReefControlRuntimeSensor):
     def icon(self): return {"OK":"mdi:check-circle","Warnung":"mdi:alert","Kritisch":"mdi:alert-octagon","Keine Messwerte":"mdi:gauge-empty"}.get(self.native_value,"mdi:gauge")
     @property
     def extra_state_attributes(self):
-        results=self._results(); icp=_icp_snapshot(self.hass,self._entry)["status"]
+        results=self._results(); snap=_icp_snapshot(self.hass,self._entry)
+        icp=snap["status"] if snap["connected"] else "Nicht konfiguriert"
         issues=[f"{p}: {s}" for p,s in results.items() if s not in ("Normal","Nicht konfiguriert")]
         if icp not in ("Gut","Nicht konfiguriert","Keine Analyse"): issues.append(f"ICP: {icp}")
         return {"temperature":results["temperature"],"ph":results["ph"],"salinity":results["salinity"],"icp":icp,"issues":issues}

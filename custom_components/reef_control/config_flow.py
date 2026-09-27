@@ -65,8 +65,10 @@ class ReefControlOptionsFlow(config_entries.OptionsFlow):
         return (vol.Optional(key, description=self._suggested(key, default)),
                 selector.NumberSelector(selector.NumberSelectorConfig(**config)))
 
-    async def _save(self, changes):
+    async def _save(self, changes, remove_keys=()):
         data = dict(self._options)
+        for key in remove_keys:
+            data.pop(key, None)
         data.update(changes)
         return self.async_create_entry(title="", data=data)
 
@@ -100,24 +102,34 @@ class ReefControlOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_reef_icp(self, user_input=None) -> FlowResult:
         if user_input is not None:
-            return await self._save(user_input)
+            selected = user_input.get(CONF_REEF_ICP_ENTRY)
+            if selected == "__none__" or not selected:
+                return await self._save({}, remove_keys=(CONF_REEF_ICP_ENTRY,))
+            return await self._save({CONF_REEF_ICP_ENTRY: selected})
 
         entries = self.hass.config_entries.async_entries(REEF_ICP_DOMAIN)
-        if not entries:
-            return self.async_show_form(step_id="reef_icp_unavailable", data_schema=vol.Schema({}))
-
         options = [
-            selector.SelectOptionDict(value=e.entry_id, label=e.title or f"Reef ICP ({e.entry_id[:8]})")
-            for e in entries
+            selector.SelectOptionDict(value="__none__", label="Keine Verknüpfung")
         ]
-        field = vol.Optional(
-            CONF_REEF_ICP_ENTRY,
-            description=self._suggested(CONF_REEF_ICP_ENTRY),
+        options.extend(
+            selector.SelectOptionDict(
+                value=e.entry_id,
+                label=e.title or f"Reef ICP ({e.entry_id[:8]})",
+            )
+            for e in entries
         )
+
+        current = self._options.get(CONF_REEF_ICP_ENTRY)
+        if current and not any(e.entry_id == current for e in entries):
+            current = "__none__"
+
         return self.async_show_form(
             step_id="reef_icp",
             data_schema=vol.Schema({
-                field: selector.SelectSelector(
+                vol.Required(
+                    CONF_REEF_ICP_ENTRY,
+                    default=current or "__none__",
+                ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=options,
                         mode=selector.SelectSelectorMode.DROPDOWN,
@@ -128,7 +140,7 @@ class ReefControlOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_reef_icp_unavailable(self, user_input=None) -> FlowResult:
         if user_input is not None:
-            return self.async_create_entry(title="", data=dict(self._options))
+            return await self._save({}, remove_keys=(CONF_REEF_ICP_ENTRY,))
         return self.async_show_form(step_id="reef_icp_unavailable", data_schema=vol.Schema({}))
 
     async def async_step_limits(self, user_input=None) -> FlowResult:
