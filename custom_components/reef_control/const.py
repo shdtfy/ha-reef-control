@@ -1,7 +1,7 @@
 """Constants for Reef Control."""
 
 DOMAIN = "reef_control"
-VERSION = "0.7.0"
+VERSION = "0.8.0"
 
 DEFAULT_AQUARIUM_NAME = "My Reef"
 
@@ -99,6 +99,16 @@ CONF_SAFETY_HEATER_SENSOR_FAIL = "safety_heater_sensor_fail"
 DEFAULT_SAFETY_CONTROL_ENABLED = True
 DEFAULT_SAFETY_HEATER_HIGH_TEMP = True
 DEFAULT_SAFETY_HEATER_SENSOR_FAIL = True
+
+# UV-C control
+CONF_UVC_CONTROL_ENABLED = "uvc_control_enabled"
+CONF_UVC_MODE = "uvc_mode"
+CONF_UVC_START_TIME = "uvc_start_time"
+CONF_UVC_END_TIME = "uvc_end_time"
+DEFAULT_UVC_CONTROL_ENABLED = False
+DEFAULT_UVC_MODE = "continuous"
+DEFAULT_UVC_START_TIME = "08:00:00"
+DEFAULT_UVC_END_TIME = "20:00:00"
 
 CONF_FEEDING_DURATION = "feeding_duration"
 CONF_SKIMMER_DELAY = "skimmer_delay"

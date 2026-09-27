@@ -40,7 +40,7 @@ class ReefControlOptionsFlow(config_entries.OptionsFlow):
         for key in remove_keys: data.pop(key,None)
         data.update(changes); return self.async_create_entry(title="",data=data)
     async def async_step_init(self,user_input=None)->FlowResult:
-        return self.async_show_menu(step_id="init",menu_options=["entities","water_values","limits","operating_modes","temperature_control","ato_control","equipment_control","safety_control","reef_icp"])
+        return self.async_show_menu(step_id="init",menu_options=["entities","water_values","limits","operating_modes","temperature_control","ato_control","uvc_control","equipment_control","safety_control","reef_icp"])
     async def async_step_entities(self,user_input=None)->FlowResult:
         if user_input is not None:return await self._save(user_input)
         switch_domains=["switch","input_boolean"]; fields={}
@@ -75,6 +75,22 @@ class ReefControlOptionsFlow(config_entries.OptionsFlow):
         key,value=self._number(CONF_ATO_MAX_RUNTIME,DEFAULT_ATO_MAX_RUNTIME,5,600,1,"s"); fields[key]=value
         key,value=self._number(CONF_ATO_COOLDOWN,DEFAULT_ATO_COOLDOWN,0,60,1,"min"); fields[key]=value
         return self.async_show_form(step_id="ato_control",data_schema=vol.Schema(fields))
+    async def async_step_uvc_control(self,user_input=None)->FlowResult:
+        if user_input is not None:return await self._save(user_input)
+        mode_options=[
+            selector.SelectOptionDict(value="continuous",label="Dauerbetrieb"),
+            selector.SelectOptionDict(value="schedule",label="Zeitplan"),
+            selector.SelectOptionDict(value="off",label="Aus"),
+        ]
+        fields={
+            vol.Optional(CONF_UVC_CONTROL_ENABLED,default=self._options.get(CONF_UVC_CONTROL_ENABLED,DEFAULT_UVC_CONTROL_ENABLED)):bool,
+            vol.Optional(CONF_UVC_MODE,default=self._options.get(CONF_UVC_MODE,DEFAULT_UVC_MODE)):selector.SelectSelector(
+                selector.SelectSelectorConfig(options=mode_options,mode=selector.SelectSelectorMode.DROPDOWN)
+            ),
+            vol.Optional(CONF_UVC_START_TIME,default=self._options.get(CONF_UVC_START_TIME,DEFAULT_UVC_START_TIME)):selector.TimeSelector(),
+            vol.Optional(CONF_UVC_END_TIME,default=self._options.get(CONF_UVC_END_TIME,DEFAULT_UVC_END_TIME)):selector.TimeSelector(),
+        }
+        return self.async_show_form(step_id="uvc_control",data_schema=vol.Schema(fields))
     async def async_step_equipment_control(self,user_input=None)->FlowResult:
         if user_input is not None:return await self._save(user_input)
         fields={
