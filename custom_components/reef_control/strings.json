@@ -11,6 +11,13 @@
           "tank_type": "Aquarium type",
           "supply_system": "Supply system",
           "reef_method": "Reef method"
+        },
+        "data_description": {
+          "aquarium_name": "Name used for this aquarium throughout Reef Control.",
+          "volume": "Actual water volume after displacement by rock, sand and equipment.",
+          "tank_type": "Basic aquarium type used to classify the system.",
+          "supply_system": "Method or product system used to supply major and trace elements.",
+          "reef_method": "General method used to operate the reef aquarium."
         }
       }
     },
@@ -28,6 +35,7 @@
           "water_values": "Water values",
           "limits": "Monitoring limits",
           "operating_modes": "Operating modes",
+          "temperature_control": "Temperature control",
           "reef_icp": "Reef ICP"
         }
       },
@@ -42,6 +50,15 @@
           "light_entity": "Aquarium lighting",
           "heater_entity": "Heater",
           "ato_entity": "Auto top-off (ATO)"
+        },
+        "data_description": {
+          "skimmer_entity": "Entity that switches the protein skimmer on and off.",
+          "return_pump_entity": "Entity that switches the return pump on and off.",
+          "flow_pump_entity": "Entity that switches the circulation or flow pump on and off.",
+          "uvc_entity": "Entity that switches the UV-C sterilizer on and off.",
+          "light_entity": "Entity used to control the aquarium lighting.",
+          "heater_entity": "Entity that switches the aquarium heater. Reef Control can use this entity for automatic temperature control.",
+          "ato_entity": "Entity that switches the automatic top-off system on and off."
         }
       },
       "water_values": {
@@ -51,22 +68,16 @@
           "temperature_entity": "Temperature",
           "ph_entity": "pH",
           "salinity_entity": "Salinity"
+        },
+        "data_description": {
+          "temperature_entity": "Sensor providing the current aquarium water temperature.",
+          "ph_entity": "Sensor providing the current pH value.",
+          "salinity_entity": "Sensor providing the current salinity."
         }
-      },
-      "reef_icp": {
-        "title": "Reef ICP",
-        "description": "Link this Reef Control aquarium to a Reef ICP aquarium. The latest ICP data will be included in Reef Control.",
-        "data": {
-          "reef_icp_entry": "Reef ICP aquarium"
-        }
-      },
-      "reef_icp_unavailable": {
-        "title": "Reef ICP",
-        "description": "No Reef ICP aquarium was found. Install and configure Reef ICP first."
       },
       "limits": {
         "title": "Monitoring limits",
-        "description": "Choose the water parameter you want to configure.",
+        "description": "Choose the water parameter whose monitoring limits you want to configure.",
         "menu_options": {
           "temperature_limits": "Temperature",
           "ph_limits": "pH",
@@ -75,37 +86,55 @@
       },
       "temperature_limits": {
         "title": "Temperature limits",
-        "description": "Normal range and critical safety limits for temperature.",
+        "description": "Define the normal range and critical safety limits for temperature.",
         "data": {
           "temperature_min": "Normal minimum",
           "temperature_max": "Normal maximum",
           "temperature_critical_min": "Critical minimum",
           "temperature_critical_max": "Critical maximum"
+        },
+        "data_description": {
+          "temperature_min": "Below this value the temperature is outside the desired normal range.",
+          "temperature_max": "Above this value the temperature is outside the desired normal range.",
+          "temperature_critical_min": "Below this value Reef Control rates the temperature as critical.",
+          "temperature_critical_max": "Above this value Reef Control rates the temperature as critical."
         }
       },
       "ph_limits": {
         "title": "pH limits",
-        "description": "Normal range and critical safety limits for pH.",
+        "description": "Define the normal range and critical safety limits for pH.",
         "data": {
           "ph_min": "Normal minimum",
           "ph_max": "Normal maximum",
           "ph_critical_min": "Critical minimum",
           "ph_critical_max": "Critical maximum"
+        },
+        "data_description": {
+          "ph_min": "Below this value the pH is outside the desired normal range.",
+          "ph_max": "Above this value the pH is outside the desired normal range.",
+          "ph_critical_min": "Below this value Reef Control rates the pH as critical.",
+          "ph_critical_max": "Above this value Reef Control rates the pH as critical."
         }
       },
       "salinity_limits": {
         "title": "Salinity limits",
-        "description": "Normal range and critical safety limits for salinity.",
+        "description": "Define the normal range and critical safety limits for salinity.",
         "data": {
           "salinity_min": "Normal minimum",
           "salinity_max": "Normal maximum",
           "salinity_critical_min": "Critical minimum",
           "salinity_critical_max": "Critical maximum"
+        },
+        "data_description": {
+          "salinity_min": "Below this value the salinity is outside the desired normal range.",
+          "salinity_max": "Above this value the salinity is outside the desired normal range.",
+          "salinity_critical_min": "Below this value Reef Control rates the salinity as critical.",
+          "salinity_critical_max": "Above this value Reef Control rates the salinity as critical."
         }
       },
       "operating_modes": {
         "title": "Operating modes",
-        "description": "Configure feeding and maintenance behavior.",
+        "description": "Configure how Reef Control controls equipment during feeding and maintenance.",
         "data": {
           "feeding_duration": "Feeding duration",
           "skimmer_delay": "Skimmer restart delay",
@@ -121,7 +150,55 @@
           "maintenance_pause_ato": "Pause auto top-off during maintenance",
           "maintenance_pause_heater": "Pause heater during maintenance",
           "maintenance_pause_light": "Pause aquarium lighting during maintenance"
+        },
+        "data_description": {
+          "feeding_duration": "How long feeding mode remains active before it ends automatically.",
+          "skimmer_delay": "Additional delay before the protein skimmer restarts after feeding mode ends.",
+          "feeding_pause_skimmer": "Switch the protein skimmer off while feeding mode is active.",
+          "feeding_pause_return_pump": "Switch the return pump off while feeding mode is active.",
+          "feeding_pause_flow_pump": "Switch the flow pump off while feeding mode is active.",
+          "feeding_pause_uvc": "Switch UV-C off while feeding mode is active.",
+          "feeding_pause_ato": "Switch automatic top-off off while feeding mode is active.",
+          "maintenance_pause_skimmer": "Switch the protein skimmer off while maintenance mode is active.",
+          "maintenance_pause_return_pump": "Switch the return pump off while maintenance mode is active.",
+          "maintenance_pause_flow_pump": "Switch the flow pump off while maintenance mode is active.",
+          "maintenance_pause_uvc": "Switch UV-C off while maintenance mode is active.",
+          "maintenance_pause_ato": "Switch automatic top-off off while maintenance mode is active.",
+          "maintenance_pause_heater": "Switch the heater off while maintenance mode is active. Automatic temperature control is paused during maintenance.",
+          "maintenance_pause_light": "Switch aquarium lighting off while maintenance mode is active."
         }
+      },
+      "temperature_control": {
+        "title": "Temperature control",
+        "description": "Configure automatic heater control. A temperature sensor and heater must be assigned under Equipment & entities / Water values.",
+        "data": {
+          "temperature_control_enabled": "Enable temperature control",
+          "temperature_target": "Target temperature",
+          "temperature_hysteresis": "Hysteresis",
+          "temperature_min_on_time": "Minimum heater run time",
+          "temperature_min_off_time": "Minimum heater off time"
+        },
+        "data_description": {
+          "temperature_control_enabled": "Enables Reef Control's automatic heater control.",
+          "temperature_target": "Temperature Reef Control should maintain. The heater switches off when this temperature is reached.",
+          "temperature_hysteresis": "Prevents frequent switching. Example: with 25.0 °C target and 0.3 °C hysteresis, heating starts at 24.7 °C or below and stops at 25.0 °C or above.",
+          "temperature_min_on_time": "After switching on, the heater must remain on for at least this long before Reef Control may switch it off.",
+          "temperature_min_off_time": "After switching off, Reef Control waits at least this long before the heater may be switched on again."
+        }
+      },
+      "reef_icp": {
+        "title": "Reef ICP",
+        "description": "Link this Reef Control aquarium to a Reef ICP aquarium. The latest ICP data will then be included in Reef Control.",
+        "data": {
+          "reef_icp_entry": "Reef ICP aquarium"
+        },
+        "data_description": {
+          "reef_icp_entry": "Select the Reef ICP aquarium whose analysis data belongs to this Reef Control aquarium. Choose no link to disconnect it."
+        }
+      },
+      "reef_icp_unavailable": {
+        "title": "Reef ICP",
+        "description": "No Reef ICP aquarium was found. Install and configure Reef ICP first."
       }
     },
     "error": {
