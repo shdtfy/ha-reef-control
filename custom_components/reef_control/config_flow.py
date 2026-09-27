@@ -58,16 +58,19 @@ class ReefControlOptionsFlow(config_entries.OptionsFlow):
         return {"suggested_value": self._options.get(key, default)}
 
     def _number(self, key, default, minimum, maximum, step, unit=None):
-        config = selector.NumberSelectorConfig(
-            min=minimum,
-            max=maximum,
-            step=step,
-            mode=selector.NumberSelectorMode.BOX,
-            unit_of_measurement=unit,
-        )
+        config = {
+            "min": minimum,
+            "max": maximum,
+            "step": step,
+            "mode": selector.NumberSelectorMode.BOX,
+        }
+        # Important: Home Assistant rejects unit_of_measurement=None.
+        if unit is not None:
+            config["unit_of_measurement"] = unit
+
         return (
             vol.Optional(key, description=self._suggested(key, default)),
-            selector.NumberSelector(config),
+            selector.NumberSelector(selector.NumberSelectorConfig(**config)),
         )
 
     async def _save(self, changes):
@@ -113,32 +116,79 @@ class ReefControlOptionsFlow(config_entries.OptionsFlow):
         return self.async_show_form(step_id="water_values", data_schema=vol.Schema(fields))
 
     async def async_step_limits(self, user_input=None) -> FlowResult:
-        errors = {}
-        if user_input is not None:
-            errors = self._validate_limits(user_input)
-            if not errors:
-                return await self._save(user_input)
+        return self.async_show_menu(
+            step_id="limits",
+            menu_options=["temperature_limits", "ph_limits", "salinity_limits"],
+        )
 
-        fields = {}
+    async def async_step_temperature_limits(self, user_input=None) -> FlowResult:
         definitions = [
             (CONF_TEMPERATURE_MIN, DEFAULT_TEMPERATURE_MIN, 0, 50, 0.1, "°C"),
             (CONF_TEMPERATURE_MAX, DEFAULT_TEMPERATURE_MAX, 0, 50, 0.1, "°C"),
             (CONF_TEMPERATURE_CRITICAL_MIN, DEFAULT_TEMPERATURE_CRITICAL_MIN, 0, 50, 0.1, "°C"),
             (CONF_TEMPERATURE_CRITICAL_MAX, DEFAULT_TEMPERATURE_CRITICAL_MAX, 0, 50, 0.1, "°C"),
+        ]
+        return await self._limits_form(
+            "temperature_limits", user_input, definitions,
+            (
+                CONF_TEMPERATURE_CRITICAL_MIN, CONF_TEMPERATURE_MIN,
+                CONF_TEMPERATURE_MAX, CONF_TEMPERATURE_CRITICAL_MAX,
+            ),
+            (
+                DEFAULT_TEMPERATURE_CRITICAL_MIN, DEFAULT_TEMPERATURE_MIN,
+                DEFAULT_TEMPERATURE_MAX, DEFAULT_TEMPERATURE_CRITICAL_MAX,
+            ),
+        )
+
+    async def async_step_ph_limits(self, user_input=None) -> FlowResult:
+        definitions = [
             (CONF_PH_MIN, DEFAULT_PH_MIN, 0, 14, 0.01, None),
             (CONF_PH_MAX, DEFAULT_PH_MAX, 0, 14, 0.01, None),
             (CONF_PH_CRITICAL_MIN, DEFAULT_PH_CRITICAL_MIN, 0, 14, 0.01, None),
             (CONF_PH_CRITICAL_MAX, DEFAULT_PH_CRITICAL_MAX, 0, 14, 0.01, None),
+        ]
+        return await self._limits_form(
+            "ph_limits", user_input, definitions,
+            (CONF_PH_CRITICAL_MIN, CONF_PH_MIN, CONF_PH_MAX, CONF_PH_CRITICAL_MAX),
+            (DEFAULT_PH_CRITICAL_MIN, DEFAULT_PH_MIN, DEFAULT_PH_MAX, DEFAULT_PH_CRITICAL_MAX),
+        )
+
+    async def async_step_salinity_limits(self, user_input=None) -> FlowResult:
+        definitions = [
             (CONF_SALINITY_MIN, DEFAULT_SALINITY_MIN, 0, 100, 0.1, "ppt"),
             (CONF_SALINITY_MAX, DEFAULT_SALINITY_MAX, 0, 100, 0.1, "ppt"),
             (CONF_SALINITY_CRITICAL_MIN, DEFAULT_SALINITY_CRITICAL_MIN, 0, 100, 0.1, "ppt"),
             (CONF_SALINITY_CRITICAL_MAX, DEFAULT_SALINITY_CRITICAL_MAX, 0, 100, 0.1, "ppt"),
         ]
+        return await self._limits_form(
+            "salinity_limits", user_input, definitions,
+            (
+                CONF_SALINITY_CRITICAL_MIN, CONF_SALINITY_MIN,
+                CONF_SALINITY_MAX, CONF_SALINITY_CRITICAL_MAX,
+            ),
+            (
+                DEFAULT_SALINITY_CRITICAL_MIN, DEFAULT_SALINITY_MIN,
+                DEFAULT_SALINITY_MAX, DEFAULT_SALINITY_CRITICAL_MAX,
+            ),
+        )
+
+    async def _limits_form(self, step_id, user_input, definitions, keys, defaults):
+        errors = {}
+        if user_input is not None:
+            values = [float(user_input.get(k, d)) for k, d in zip(keys, defaults)]
+            if values[0] <= values[1] < values[2] <= values[3]:
+                return await self._save(user_input)
+            errors["base"] = "invalid_limits"
+
+        fields = {}
         for args in definitions:
             key, value = self._number(*args)
             fields[key] = value
+
         return self.async_show_form(
-            step_id="limits", data_schema=vol.Schema(fields), errors=errors
+            step_id=step_id,
+            data_schema=vol.Schema(fields),
+            errors=errors,
         )
 
     async def async_step_operating_modes(self, user_input=None) -> FlowResult:
@@ -175,34 +225,3 @@ class ReefControlOptionsFlow(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id="operating_modes", data_schema=vol.Schema(fields)
         )
-
-    @staticmethod
-    def _validate_limits(data):
-        errors = {}
-        groups = [
-            (
-                CONF_TEMPERATURE_CRITICAL_MIN, CONF_TEMPERATURE_MIN,
-                CONF_TEMPERATURE_MAX, CONF_TEMPERATURE_CRITICAL_MAX,
-            ),
-            (CONF_PH_CRITICAL_MIN, CONF_PH_MIN, CONF_PH_MAX, CONF_PH_CRITICAL_MAX),
-            (
-                CONF_SALINITY_CRITICAL_MIN, CONF_SALINITY_MIN,
-                CONF_SALINITY_MAX, CONF_SALINITY_CRITICAL_MAX,
-            ),
-        ]
-        defaults = [
-            (
-                DEFAULT_TEMPERATURE_CRITICAL_MIN, DEFAULT_TEMPERATURE_MIN,
-                DEFAULT_TEMPERATURE_MAX, DEFAULT_TEMPERATURE_CRITICAL_MAX,
-            ),
-            (DEFAULT_PH_CRITICAL_MIN, DEFAULT_PH_MIN, DEFAULT_PH_MAX, DEFAULT_PH_CRITICAL_MAX),
-            (
-                DEFAULT_SALINITY_CRITICAL_MIN, DEFAULT_SALINITY_MIN,
-                DEFAULT_SALINITY_MAX, DEFAULT_SALINITY_CRITICAL_MAX,
-            ),
-        ]
-        for keys, defs in zip(groups, defaults):
-            vals = [float(data.get(k, d)) for k, d in zip(keys, defs)]
-            if not vals[0] <= vals[1] < vals[2] <= vals[3]:
-                errors["base"] = "invalid_limits"
-        return errors

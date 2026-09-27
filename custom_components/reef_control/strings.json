@@ -54,20 +54,41 @@
       },
       "limits": {
         "title": "Monitoring limits",
-        "description": "Define normal and critical ranges for each water parameter.",
+        "description": "Choose the water parameter you want to configure.",
+        "menu_options": {
+          "temperature_limits": "Temperature",
+          "ph_limits": "pH",
+          "salinity_limits": "Salinity"
+        }
+      },
+      "temperature_limits": {
+        "title": "Temperature limits",
+        "description": "Normal range and critical safety limits for temperature.",
         "data": {
-          "temperature_min": "Temperature lower limit",
-          "temperature_max": "Temperature upper limit",
-          "temperature_critical_min": "Temperature critical lower limit",
-          "temperature_critical_max": "Temperature critical upper limit",
-          "ph_min": "pH lower limit",
-          "ph_max": "pH upper limit",
-          "ph_critical_min": "pH critical lower limit",
-          "ph_critical_max": "pH critical upper limit",
-          "salinity_min": "Salinity lower limit",
-          "salinity_max": "Salinity upper limit",
-          "salinity_critical_min": "Salinity critical lower limit",
-          "salinity_critical_max": "Salinity critical upper limit"
+          "temperature_min": "Normal minimum",
+          "temperature_max": "Normal maximum",
+          "temperature_critical_min": "Critical minimum",
+          "temperature_critical_max": "Critical maximum"
+        }
+      },
+      "ph_limits": {
+        "title": "pH limits",
+        "description": "Normal range and critical safety limits for pH.",
+        "data": {
+          "ph_min": "Normal minimum",
+          "ph_max": "Normal maximum",
+          "ph_critical_min": "Critical minimum",
+          "ph_critical_max": "Critical maximum"
+        }
+      },
+      "salinity_limits": {
+        "title": "Salinity limits",
+        "description": "Normal range and critical safety limits for salinity.",
+        "data": {
+          "salinity_min": "Normal minimum",
+          "salinity_max": "Normal maximum",
+          "salinity_critical_min": "Critical minimum",
+          "salinity_critical_max": "Critical maximum"
         }
       },
       "operating_modes": {
