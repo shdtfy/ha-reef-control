@@ -21,8 +21,8 @@
   "options": {
     "step": {
       "init": {
-        "title": "Aquarium-Entitäten & Betriebsmodi",
-        "description": "Ordne vorhandene Home-Assistant-Entitäten zu und konfiguriere Fütterungs- und Wartungsmodus. Alle Entitätszuordnungen sind optional.",
+        "title": "Aquarium-Entitäten, Überwachung & Betriebsmodi",
+        "description": "Ordne Entitäten zu, definiere Normal- und kritische Bereiche der Wasserwerte und konfiguriere Fütterungs- und Wartungsmodus.",
         "data": {
           "temperature_entity": "Temperatur",
           "ph_entity": "pH-Wert",
@@ -34,6 +34,18 @@
           "light_entity": "Aquariumbeleuchtung",
           "heater_entity": "Heizung",
           "ato_entity": "Nachfüllanlage (ATO)",
+          "temperature_min": "Temperatur Normalbereich min.",
+          "temperature_max": "Temperatur Normalbereich max.",
+          "temperature_critical_min": "Temperatur kritisch min.",
+          "temperature_critical_max": "Temperatur kritisch max.",
+          "ph_min": "pH Normalbereich min.",
+          "ph_max": "pH Normalbereich max.",
+          "ph_critical_min": "pH kritisch min.",
+          "ph_critical_max": "pH kritisch max.",
+          "salinity_min": "Salinität Normalbereich min.",
+          "salinity_max": "Salinität Normalbereich max.",
+          "salinity_critical_min": "Salinität kritisch min.",
+          "salinity_critical_max": "Salinität kritisch max.",
           "feeding_duration": "Fütterungsdauer",
           "skimmer_delay": "Abschäumer-Nachlaufverzögerung",
           "feeding_pause_skimmer": "Abschäumer beim Füttern pausieren",
@@ -50,6 +62,9 @@
           "maintenance_pause_light": "Aquariumbeleuchtung bei Wartung pausieren"
         }
       }
+    },
+    "error": {
+      "invalid_limits": "Grenzwerte prüfen: kritisch min. ≤ normal min. < normal max. ≤ kritisch max."
     }
   }
 }

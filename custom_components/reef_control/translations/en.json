@@ -21,8 +21,8 @@
   "options": {
     "step": {
       "init": {
-        "title": "Aquarium entities & operating modes",
-        "description": "Assign Home Assistant entities and configure feeding and maintenance mode. All entity assignments are optional.",
+        "title": "Aquarium entities, monitoring & operating modes",
+        "description": "Assign entities, define normal and critical water parameter ranges, and configure feeding and maintenance mode.",
         "data": {
           "temperature_entity": "Temperature",
           "ph_entity": "pH",
@@ -34,6 +34,18 @@
           "light_entity": "Aquarium lighting",
           "heater_entity": "Heater",
           "ato_entity": "Auto top-off (ATO)",
+          "temperature_min": "Temperature normal minimum",
+          "temperature_max": "Temperature normal maximum",
+          "temperature_critical_min": "Temperature critical minimum",
+          "temperature_critical_max": "Temperature critical maximum",
+          "ph_min": "pH normal minimum",
+          "ph_max": "pH normal maximum",
+          "ph_critical_min": "pH critical minimum",
+          "ph_critical_max": "pH critical maximum",
+          "salinity_min": "Salinity normal minimum",
+          "salinity_max": "Salinity normal maximum",
+          "salinity_critical_min": "Salinity critical minimum",
+          "salinity_critical_max": "Salinity critical maximum",
           "feeding_duration": "Feeding duration",
           "skimmer_delay": "Skimmer restart delay",
           "feeding_pause_skimmer": "Pause protein skimmer during feeding",
@@ -50,6 +62,9 @@
           "maintenance_pause_light": "Pause aquarium lighting during maintenance"
         }
       }
+    },
+    "error": {
+      "invalid_limits": "Check the limits: critical minimum ≤ normal minimum < normal maximum ≤ critical maximum."
     }
   }
 }
