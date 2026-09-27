@@ -36,7 +36,8 @@
           "limits": "Monitoring limits",
           "operating_modes": "Operating modes",
           "temperature_control": "Temperature control",
-          "reef_icp": "Reef ICP"
+          "reef_icp": "Reef ICP",
+          "ato_control": "Water level control"
         }
       },
       "entities": {
@@ -58,7 +59,7 @@
           "uvc_entity": "Entity that switches the UV-C sterilizer on and off.",
           "light_entity": "Entity used to control the aquarium lighting.",
           "heater_entity": "Entity that switches the aquarium heater. Reef Control can use this entity for automatic temperature control.",
-          "ato_entity": "Entity that switches the automatic top-off system on and off."
+          "ato_entity": "Entity that switches the automatic top-off pump. Reef Control can use it for automatic water level control."
         }
       },
       "water_values": {
@@ -67,12 +68,14 @@
         "data": {
           "temperature_entity": "Temperature",
           "ph_entity": "pH",
-          "salinity_entity": "Salinity"
+          "salinity_entity": "Salinity",
+          "water_level_entity": "Water level"
         },
         "data_description": {
           "temperature_entity": "Sensor providing the current aquarium water temperature.",
           "ph_entity": "Sensor providing the current pH value.",
-          "salinity_entity": "Sensor providing the current salinity."
+          "salinity_entity": "Sensor providing the current salinity.",
+          "water_level_entity": "Binary sensor or input boolean used to detect a low water level."
         }
       },
       "limits": {
@@ -199,6 +202,24 @@
       "reef_icp_unavailable": {
         "title": "Reef ICP",
         "description": "No Reef ICP aquarium was found. Install and configure Reef ICP first."
+      },
+      "ato_control": {
+        "title": "Water level control",
+        "description": "Configure automatic top-off. A water-level sensor and ATO pump must be assigned first.",
+        "data": {
+          "ato_control_enabled": "Enable water level control",
+          "ato_low_state": "State meaning water level is low",
+          "ato_confirm_delay": "Low-level confirmation delay",
+          "ato_max_runtime": "Maximum top-off runtime",
+          "ato_cooldown": "Minimum pause between top-offs"
+        },
+        "data_description": {
+          "ato_control_enabled": "Enables automatic top-off control by Reef Control.",
+          "ato_low_state": "Choose whether ON or OFF from your sensor means that the water level is too low.",
+          "ato_confirm_delay": "The water level must remain low for this long before the pump starts. This filters waves and brief sensor changes.",
+          "ato_max_runtime": "Hard safety limit for one top-off cycle. When exceeded, the pump is switched off and the controller locks until you turn water level control off and on again.",
+          "ato_cooldown": "Minimum waiting time after a completed top-off before another top-off may start."
+        }
       }
     },
     "error": {

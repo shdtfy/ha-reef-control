@@ -40,7 +40,7 @@ class ReefControlOptionsFlow(config_entries.OptionsFlow):
         for key in remove_keys: data.pop(key,None)
         data.update(changes); return self.async_create_entry(title="",data=data)
     async def async_step_init(self,user_input=None)->FlowResult:
-        return self.async_show_menu(step_id="init",menu_options=["entities","water_values","limits","operating_modes","temperature_control","reef_icp"])
+        return self.async_show_menu(step_id="init",menu_options=["entities","water_values","limits","operating_modes","temperature_control","ato_control","reef_icp"])
     async def async_step_entities(self,user_input=None)->FlowResult:
         if user_input is not None:return await self._save(user_input)
         switch_domains=["switch","input_boolean"]; fields={}
@@ -53,6 +53,7 @@ class ReefControlOptionsFlow(config_entries.OptionsFlow):
         fields={}
         for key in (CONF_TEMPERATURE_ENTITY,CONF_PH_ENTITY,CONF_SALINITY_ENTITY):
             fields[vol.Optional(key,description=self._suggested(key))]=selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor"))
+        fields[vol.Optional(CONF_WATER_LEVEL_ENTITY,description=self._suggested(CONF_WATER_LEVEL_ENTITY))]=selector.EntitySelector(selector.EntitySelectorConfig(domain=["binary_sensor","input_boolean"]))
         return self.async_show_form(step_id="water_values",data_schema=vol.Schema(fields))
     async def async_step_temperature_control(self,user_input=None)->FlowResult:
         if user_input is not None:return await self._save(user_input)
@@ -62,6 +63,24 @@ class ReefControlOptionsFlow(config_entries.OptionsFlow):
         key,value=self._number(CONF_TEMPERATURE_MIN_ON_TIME,DEFAULT_TEMPERATURE_MIN_ON_TIME,0,30,1,"min"); fields[key]=value
         key,value=self._number(CONF_TEMPERATURE_MIN_OFF_TIME,DEFAULT_TEMPERATURE_MIN_OFF_TIME,0,30,1,"min"); fields[key]=value
         return self.async_show_form(step_id="temperature_control",data_schema=vol.Schema(fields))
+    async def async_step_ato_control(self,user_input=None)->FlowResult:
+        if user_input is not None:return await self._save(user_input)
+        fields={
+            vol.Optional(CONF_ATO_CONTROL_ENABLED,default=self._options.get(CONF_ATO_CONTROL_ENABLED,DEFAULT_ATO_CONTROL_ENABLED)):bool,
+            vol.Optional(CONF_ATO_LOW_STATE,default=self._options.get(CONF_ATO_LOW_STATE,DEFAULT_ATO_LOW_STATE)):selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[
+                        selector.SelectOptionDict(value="on",label="ON"),
+                        selector.SelectOptionDict(value="off",label="OFF"),
+                    ],
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
+        }
+        key,value=self._number(CONF_ATO_CONFIRM_DELAY,DEFAULT_ATO_CONFIRM_DELAY,0,30,1,"s"); fields[key]=value
+        key,value=self._number(CONF_ATO_MAX_RUNTIME,DEFAULT_ATO_MAX_RUNTIME,5,600,1,"s"); fields[key]=value
+        key,value=self._number(CONF_ATO_COOLDOWN,DEFAULT_ATO_COOLDOWN,0,60,1,"min"); fields[key]=value
+        return self.async_show_form(step_id="ato_control",data_schema=vol.Schema(fields))
     async def async_step_reef_icp(self,user_input=None)->FlowResult:
         if user_input is not None:
             selected=user_input.get(CONF_REEF_ICP_ENTRY)
