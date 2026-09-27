@@ -21,31 +21,59 @@
   "options": {
     "step": {
       "init": {
-        "title": "Aquarium-Entitäten, Überwachung & Betriebsmodi",
-        "description": "Ordne Entitäten zu, definiere Normal- und kritische Bereiche der Wasserwerte und konfiguriere Fütterungs- und Wartungsmodus.",
+        "title": "Reef Control konfigurieren",
+        "description": "Wähle aus, welchen Bereich du bearbeiten möchtest.",
+        "menu_options": {
+          "entities": "Geräte & Entitäten",
+          "water_values": "Wasserwerte",
+          "limits": "Grenzwerte",
+          "operating_modes": "Betriebsmodi"
+        }
+      },
+      "entities": {
+        "title": "Geräte & Entitäten",
+        "description": "Ordne die Home-Assistant-Entitäten deiner Aquarientechnik zu.",
         "data": {
-          "temperature_entity": "Temperatur",
-          "ph_entity": "pH-Wert",
-          "salinity_entity": "Salinität",
           "skimmer_entity": "Abschäumer",
           "return_pump_entity": "Rückförderpumpe",
           "flow_pump_entity": "Strömungspumpe",
           "uvc_entity": "UV-C",
           "light_entity": "Aquariumbeleuchtung",
           "heater_entity": "Heizung",
-          "ato_entity": "Nachfüllanlage (ATO)",
-          "temperature_min": "Temperatur Normalbereich min.",
-          "temperature_max": "Temperatur Normalbereich max.",
-          "temperature_critical_min": "Temperatur kritisch min.",
-          "temperature_critical_max": "Temperatur kritisch max.",
-          "ph_min": "pH Normalbereich min.",
-          "ph_max": "pH Normalbereich max.",
-          "ph_critical_min": "pH kritisch min.",
-          "ph_critical_max": "pH kritisch max.",
-          "salinity_min": "Salinität Normalbereich min.",
-          "salinity_max": "Salinität Normalbereich max.",
-          "salinity_critical_min": "Salinität kritisch min.",
-          "salinity_critical_max": "Salinität kritisch max.",
+          "ato_entity": "Nachfüllanlage (ATO)"
+        }
+      },
+      "water_values": {
+        "title": "Wasserwerte",
+        "description": "Wähle die Sensoren aus, die Reef Control überwachen soll.",
+        "data": {
+          "temperature_entity": "Temperatur",
+          "ph_entity": "pH",
+          "salinity_entity": "Salinität"
+        }
+      },
+      "limits": {
+        "title": "Grenzwerte",
+        "description": "Lege Normalbereich und kritische Grenzen für die Wasserwerte fest.",
+        "data": {
+          "temperature_min": "Temperatur Untergrenze",
+          "temperature_max": "Temperatur Obergrenze",
+          "temperature_critical_min": "Temperatur kritische Untergrenze",
+          "temperature_critical_max": "Temperatur kritische Obergrenze",
+          "ph_min": "pH Untergrenze",
+          "ph_max": "pH Obergrenze",
+          "ph_critical_min": "pH kritische Untergrenze",
+          "ph_critical_max": "pH kritische Obergrenze",
+          "salinity_min": "Salinität Untergrenze",
+          "salinity_max": "Salinität Obergrenze",
+          "salinity_critical_min": "Salinität kritische Untergrenze",
+          "salinity_critical_max": "Salinität kritische Obergrenze"
+        }
+      },
+      "operating_modes": {
+        "title": "Betriebsmodi",
+        "description": "Konfiguriere das Verhalten von Fütterungs- und Wartungsmodus.",
+        "data": {
           "feeding_duration": "Fütterungsdauer",
           "skimmer_delay": "Abschäumer-Nachlaufverzögerung",
           "feeding_pause_skimmer": "Abschäumer beim Füttern pausieren",
