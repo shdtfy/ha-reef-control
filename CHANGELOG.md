@@ -1,18 +1,30 @@
 # Changelog
 
-## 0.1.1
+## 0.3.1
+- Tolerate TC420 units that accept Play init but do not return its ACK in time.
+- After Play-init retries fail, discard delayed ACK packets and send a safe 0% fast-play probe.
+- Keep the USB session open when that probe succeeds instead of reconnecting endlessly.
+- Expose the diagnostic status `live_play_init_ack_missing` while the fallback path is active.
+- No stored TC420 programs are modified.
 
-- Align TC420 USB communication with the known controller endpoint layout.
-- Use interface `(0, 0)` directly.
-- Use endpoint index `0` as IN and endpoint index `1` as OUT.
-- Remove explicit PyUSB interface claiming from the clock-sync test.
-- Add endpoint, write-length and response diagnostics.
-- Keep the safety restriction: no channel-level or stored-program commands.
+## 0.3.0
+- Added permanent Reef Control bridge mode.
+- Added internal Home Assistant API communication using the Supervisor token.
+- Added continuous TC420 fast-play keepalive.
+- Added automatic USB session recovery.
+- Added stale Home Assistant data protection.
+- SEA WATER profile exposes channels 1-4 only.
+- TC420 channel 5 is permanently held at 0% in bridge mode.
+- Kept the previous one-shot diagnostic mode when bridge mode is disabled.
+- Stored TC420 programs remain untouched.
 
-## 0.1.0
+## 0.2.2
+- Fixed PyUSB Interface compatibility.
+- Added endpoint diagnostics.
+- Kept retry and timeout handling.
 
-- Initial TC420 / SIMU-LUX USB diagnostic app.
-- Detects controllers with USB ID `0888:4000`.
-- Monitors controller connect/disconnect state in the log.
-- Optional clock synchronization.
-- No channel-level or stored-program modification.
+## 0.2.1
+- Added USB settle delay and retry handling.
+
+## 0.2.0
+- Added guarded TC420 fast-play output test.
