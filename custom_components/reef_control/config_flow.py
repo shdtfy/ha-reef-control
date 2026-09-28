@@ -52,7 +52,7 @@ class ReefControlOptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:return await self._save(user_input)
         fields={}
         for key in (CONF_TEMPERATURE_ENTITY,CONF_PH_ENTITY,CONF_SALINITY_ENTITY,CONF_CONDUCTIVITY_ENTITY,CONF_REDOX_ENTITY):
-            fields[vol.Optional(key,description=self._suggested(key))]=selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor"))
+            fields[vol.Optional(key,description=self._suggested(key))]=selector.EntitySelector(selector.EntitySelectorConfig(domain=["sensor","input_number"]))
         fields[vol.Optional(CONF_SALINITY_SOURCE,default=self._options.get(CONF_SALINITY_SOURCE,DEFAULT_SALINITY_SOURCE))]=selector.SelectSelector(
             selector.SelectSelectorConfig(options=[
                 selector.SelectOptionDict(value="auto",label="Automatisch"),
