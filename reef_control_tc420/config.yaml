@@ -1,7 +1,7 @@
 name: Reef Control TC420 USB
-version: "0.2.0"
+version: "0.2.1"
 slug: reef_control_tc420
-description: USB bridge and guarded live-channel test for TC420 / SIMU-LUX controllers
+description: USB bridge with guarded live-channel test for TC420 / SIMU-LUX controllers
 url: https://github.com/shdtfy/ha-reef-control
 arch:
   - aarch64
