@@ -1,7 +1,7 @@
 """Constants for Reef Control."""
 
 DOMAIN = "reef_control"
-VERSION = "0.11.0"
+VERSION = "0.12.0"
 
 DEFAULT_AQUARIUM_NAME = "My Reef"
 
@@ -19,7 +19,6 @@ CONF_REDOX_ENTITY = "redox_entity"
 CONF_SALINITY_SOURCE = "salinity_source"
 CONF_WATER_LEVEL_ENTITY = "water_level_entity"
 CONF_LEAK_ENTITY = "leak_entity"
-
 
 # Water-level monitoring
 CONF_WATER_LEVEL_MODE = "water_level_mode"
@@ -169,6 +168,9 @@ CONF_MAINTENANCE_PAUSE_UVC = "maintenance_pause_uvc"
 CONF_MAINTENANCE_PAUSE_ATO = "maintenance_pause_ato"
 CONF_MAINTENANCE_PAUSE_HEATER = "maintenance_pause_heater"
 CONF_MAINTENANCE_PAUSE_LIGHT = "maintenance_pause_light"
+
+# TC420 / SIMU-LUX SEA WATER lighting bridge
+TC420_CHANNEL_COUNT = 4
 
 MANUAL_MEASUREMENTS = {
     "kh": {"name": "KH", "icon": "mdi:flask-outline", "unit": "dKH", "min": 0.0, "max": 20.0, "step": 0.1},
