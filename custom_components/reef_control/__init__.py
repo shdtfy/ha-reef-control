@@ -13,7 +13,7 @@ from .safety_control import ReefControlSafetyController
 from .uvc_control import ReefControlUvcController
 from .alarm_control import ReefControlAlarmController
 
-CARD_VERSION="0.1.0"
+CARD_VERSION="0.1.2"
 CARD_URL="/reef_control/reef-control-card.js"
 CARD_RESOURCE_URL=f"{CARD_URL}?v={CARD_VERSION}"
 CARD_FILE=Path(__file__).parent/"www"/"reef-control-card.js"
