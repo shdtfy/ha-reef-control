@@ -1,7 +1,7 @@
 configuration:
   sync_time_on_connect:
     name: Synchronize clock on connect
-    description: Synchronizes the TC420 internal clock.
+    description: Synchronizes the TC420 internal clock. USB timeouts no longer stop the app.
   poll_interval:
     name: USB polling interval
     description: Seconds between USB checks.

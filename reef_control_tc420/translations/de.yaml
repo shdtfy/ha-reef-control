@@ -1,7 +1,7 @@
 configuration:
   sync_time_on_connect:
     name: Uhrzeit beim Verbinden synchronisieren
-    description: Synchronisiert die interne Uhr des TC420.
+    description: Synchronisiert die interne Uhr des TC420. USB-Timeouts beenden die App nicht mehr.
   poll_interval:
     name: USB-Prüfintervall
     description: Sekunden zwischen den USB-Prüfungen.
