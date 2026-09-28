@@ -1,4 +1,4 @@
-"""TC420 / SIMU-LUX USB bridge for Reef Control v0.3.0.
+"""TC420 / SIMU-LUX USB bridge for Reef Control v0.3.1.
 
 The bridge reads the four desired SEA WATER light channel values from the
 Reef Control Home Assistant integration and keeps the TC420 fast-play session
@@ -23,7 +23,7 @@ from pathlib import Path
 import usb.core
 import usb.util
 
-APP_VERSION = "0.3.0"
+APP_VERSION = "0.3.1"
 VENDOR_ID = 0x0888
 PRODUCT_ID = 0x4000
 INTERFACE = 0
@@ -195,6 +195,73 @@ def send_and_expect_ok(in_ep, out_ep, packet: bytes, label: str) -> None:
     raise RuntimeError(f"{label}: failed after {USB_RETRIES} attempts: {last_error}")
 
 
+def drain_input_endpoint(in_ep, max_packets: int = 4) -> int:
+    """Discard delayed ACK packets that arrived after a timeout.
+
+    TC420 / SIMU-LUX units can accept a command even when their HID reply is
+    delayed long enough for libusb to time out. Before probing fast-play after
+    a missing Play-init ACK, clear any late replies so the probe is not matched
+    against an older command.
+    """
+    drained = 0
+    for _ in range(max_packets):
+        try:
+            in_ep.read(PACKET_SIZE, timeout=50)
+            drained += 1
+        except usb.core.USBTimeoutError:
+            break
+        except usb.core.USBError as err:
+            # A timeout can be reported as a generic USBError on some backends.
+            if getattr(err, "errno", None) in (110,):
+                break
+            raise
+    if drained:
+        log("INFO", f"Discarded {drained} delayed TC420 ACK packet(s).")
+    return drained
+
+
+def initialize_fast_play(in_ep, out_ep) -> bool:
+    """Enter TC420 fast-play mode, tolerating a missing Play-init ACK.
+
+    Returns True when the normal Play-init ACK was received. Returns False when
+    Play init timed out but a zero-output PlaySetChannels probe was acknowledged,
+    proving that the controller entered fast-play despite the missing ACK.
+    """
+    try:
+        send_and_expect_ok(
+            in_ep,
+            out_ep,
+            build_play_init_packet(),
+            "Play init",
+        )
+        return True
+    except RuntimeError as init_err:
+        log(
+            "WARNING",
+            "Play init did not return a usable ACK after retries. "
+            "Probing fast-play with safe 0% channel values before reconnecting. "
+            f"Reason: {init_err}",
+        )
+
+        # Late Play-init replies must not be mistaken for the probe ACK.
+        drain_input_endpoint(in_ep)
+        time.sleep(0.1)
+
+        safe_values = [0, 0, 0, 0, 0]
+        send_and_expect_ok(
+            in_ep,
+            out_ep,
+            build_play_channels_packet(safe_values),
+            "Fast-play 0% probe",
+        )
+        log(
+            "INFO",
+            "Fast-play probe succeeded. Treating missing Play-init ACK as "
+            "a controller reply quirk and keeping the USB session open.",
+        )
+        return False
+
+
 def synchronize_clock(device) -> bool:
     detached = False
     try:
@@ -351,10 +418,19 @@ def run_bridge(options: dict) -> None:
                         raise RuntimeError("TC420 / SIMU-LUX not found")
                     log("INFO", f"TC420 detected for bridge mode: VID:PID={device.idVendor:04x}:{device.idProduct:04x}, bus={getattr(device, 'bus', None)}, address={getattr(device, 'address', None)}")
                     in_ep, out_ep, detached = open_device(device)
-                    send_and_expect_ok(in_ep, out_ep, build_play_init_packet(), "Play init")
+                    play_init_ack = initialize_fast_play(in_ep, out_ep)
                     session_ready = True
-                    shared.set_usb_status(True, "live")
-                    log("INFO", "TC420 bridge live session established.")
+                    shared.set_usb_status(
+                        True,
+                        "live" if play_init_ack else "live_play_init_ack_missing",
+                    )
+                    if play_init_ack:
+                        log("INFO", "TC420 bridge live session established.")
+                    else:
+                        log(
+                            "INFO",
+                            "TC420 bridge live session established via 0% fast-play probe.",
+                        )
                 except Exception as err:
                     shared.set_usb_status(False, "usb_error", str(err))
                     log("ERROR", f"Could not establish TC420 bridge session: {err}")
@@ -369,7 +445,8 @@ def run_bridge(options: dict) -> None:
             values = desired[:4] + [0]
             try:
                 send_and_expect_ok(in_ep, out_ep, build_play_channels_packet(values), "Play channels")
-                shared.set_usb_status(True, "live")
+                if shared.snapshot().get("status") != "live_play_init_ack_missing":
+                    shared.set_usb_status(True, "live")
                 if last_logged_values != values:
                     log("INFO", f"Applied light channels: CH1={values[0]}%, CH2={values[1]}%, CH3={values[2]}%, CH4={values[3]}%, CH5=0%.")
                     last_logged_values = list(values)
