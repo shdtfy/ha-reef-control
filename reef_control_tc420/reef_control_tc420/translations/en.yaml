@@ -1,0 +1,7 @@
+configuration:
+  sync_time_on_connect:
+    name: Synchronize clock on connect
+    description: Sends only the TC420 clock synchronization command when the controller is detected.
+  poll_interval:
+    name: USB polling interval
+    description: Seconds between checks for the connected controller.
