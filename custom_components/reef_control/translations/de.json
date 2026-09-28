@@ -72,13 +72,19 @@
           "temperature_entity": "Temperatur",
           "ph_entity": "pH",
           "salinity_entity": "Salinität",
-          "water_level_entity": "Wasserstand"
+          "water_level_entity": "Wasserstand",
+          "conductivity_entity": "Leitfähigkeit",
+          "redox_entity": "Redox / ORP",
+          "salinity_source": "Quelle der Salinität"
         },
         "data_description": {
           "temperature_entity": "Sensor, der die aktuelle Wassertemperatur des Aquariums liefert.",
           "ph_entity": "Sensor, der den aktuellen pH-Wert liefert.",
           "salinity_entity": "Sensor, der die aktuelle Salinität liefert.",
-          "water_level_entity": "Binärsensor oder Eingabe-Helfer, mit dem Reef Control einen zu niedrigen Wasserstand erkennt."
+          "water_level_entity": "Binärsensor oder Eingabe-Helfer, mit dem Reef Control einen zu niedrigen Wasserstand erkennt.",
+          "conductivity_entity": "Sensor für die elektrische Leitfähigkeit. Reef Control normalisiert µS/cm und mS/cm und kann daraus zusammen mit der Temperatur die Salinität berechnen.",
+          "redox_entity": "Sensor für das Redoxpotential (ORP) in mV.",
+          "salinity_source": "Automatisch verwendet einen direkten Salinitätssensor, wenn einer gewählt ist, sonst Leitfähigkeit + Temperatur. Alternativ kann die Quelle fest vorgegeben werden."
         }
       },
       "limits": {
@@ -87,7 +93,8 @@
         "menu_options": {
           "temperature_limits": "Temperatur",
           "ph_limits": "pH",
-          "salinity_limits": "Salinität"
+          "salinity_limits": "Salinität",
+          "redox_limits": "Redox"
         }
       },
       "temperature_limits": {
@@ -276,6 +283,22 @@
           "uvc_mode": "Dauerbetrieb hält UV-C eingeschaltet, Zeitplan schaltet nur im gewählten Zeitfenster und Aus hält UV-C ausgeschaltet.",
           "uvc_start_time": "Uhrzeit, ab der UV-C im Zeitplanbetrieb laufen soll.",
           "uvc_end_time": "Uhrzeit, zu der UV-C im Zeitplanbetrieb ausgeschaltet wird. Zeiträume über Mitternacht werden unterstützt."
+        }
+      },
+      "redox_limits": {
+        "title": "Redox",
+        "description": "Lege Normalbereich und kritische Grenzen für das Redoxpotential fest.",
+        "data": {
+          "redox_min": "Normalbereich von",
+          "redox_max": "Normalbereich bis",
+          "redox_critical_min": "Kritisch unter",
+          "redox_critical_max": "Kritisch über"
+        },
+        "data_description": {
+          "redox_min": "Unterhalb dieses Wertes liegt Redox außerhalb des gewünschten Normalbereichs.",
+          "redox_max": "Oberhalb dieses Wertes liegt Redox außerhalb des gewünschten Normalbereichs.",
+          "redox_critical_min": "Unterhalb dieses Wertes bewertet Reef Control Redox als kritisch.",
+          "redox_critical_max": "Oberhalb dieses Wertes bewertet Reef Control Redox als kritisch."
         }
       }
     },
