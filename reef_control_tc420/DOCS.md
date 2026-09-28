@@ -1,25 +1,31 @@
-# Reef Control TC420 USB v0.2.1
+# Reef Control TC420 USB v0.2.2
 
-This release improves USB robustness after intermittent TC420 response timeouts were observed.
+## Fix
 
-## Changes
-- 0.5 second settle delay after opening the TC420 interface
-- up to 3 attempts per command
-- 0.8 second delay between retries
-- clock-sync failures no longer stop the app
-- live-test failures no longer stop the app
-- stored TC420 lighting programs are still never modified
+v0.2.1 exposed a PyUSB compatibility issue:
+
+```text
+object of type 'Interface' has no len()
+```
+
+The TC420 interface is now accessed directly through endpoint indexes `0` and `1`,
+matching the known TC420 implementation. No `len(interface)` call is used anymore.
+
+The retry handling from v0.2.1 remains active:
+- 0.5 s settle delay
+- up to 3 attempts
+- 0.8 s delay between attempts
+- USB timeouts do not terminate the app
 
 ## Recommended next test
-Because token `1` was already consumed by the previous test attempt, use:
+
+Tokens `1` and `2` have already been consumed. Use:
 
 ```yaml
 sync_time_on_connect: false
 poll_interval: 5
-live_test_token: 2
+live_test_token: 3
 live_test_channel: 1
 live_test_level: 10
 live_test_seconds: 3
 ```
-
-If the controller times out once, the app should now log a retry instead of terminating.
