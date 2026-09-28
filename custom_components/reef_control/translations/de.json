@@ -83,7 +83,7 @@
           "temperature_entity": "Sensor, der die aktuelle Wassertemperatur des Aquariums liefert.",
           "ph_entity": "Sensor, der den aktuellen pH-Wert liefert.",
           "salinity_entity": "Sensor, der die aktuelle Salinität liefert.",
-          "water_level_entity": "Binärsensor oder Eingabe-Helfer, mit dem Reef Control einen zu niedrigen Wasserstand erkennt.",
+          "water_level_entity": "Digitaler Schwimmerschalter/optischer Sensor oder numerischer Wasserstandssensor. Numerische Werte können als Wasserstand in cm ausgewertet werden.",
           "conductivity_entity": "Sensor für die elektrische Leitfähigkeit. Reef Control normalisiert µS/cm und mS/cm und kann daraus zusammen mit der Temperatur die Salinität berechnen.",
           "redox_entity": "Sensor für das Redoxpotential (ORP) in mV.",
           "salinity_source": "Automatisch verwendet einen direkten Salinitätssensor, wenn einer gewählt ist, sonst Leitfähigkeit + Temperatur. Alternativ kann die Quelle fest vorgegeben werden."
@@ -223,14 +223,20 @@
           "ato_low_state": "Zustand für niedrigen Wasserstand",
           "ato_confirm_delay": "Bestätigungszeit bei niedrigem Wasserstand",
           "ato_max_runtime": "Maximale Nachfülldauer",
-          "ato_cooldown": "Mindestpause zwischen Nachfüllungen"
+          "ato_cooldown": "Mindestpause zwischen Nachfüllungen",
+          "water_level_mode": "Art der Wasserstandsmessung",
+          "water_level_low_cm": "Wasserstand zu niedrig",
+          "water_level_high_cm": "Wasserstand zu hoch"
         },
         "data_description": {
           "ato_control_enabled": "Aktiviert die automatische Nachfüllsteuerung durch Reef Control.",
           "ato_low_state": "Lege fest, ob EIN oder AUS bei deinem Sensor bedeutet, dass der Wasserstand zu niedrig ist.",
           "ato_confirm_delay": "Der Wasserstand muss so lange durchgehend als niedrig erkannt werden, bevor die Pumpe startet. Das filtert Wellen und kurze Sensorwechsel.",
           "ato_max_runtime": "Harte Sicherheitsgrenze für einen Nachfüllvorgang. Wird sie erreicht, schaltet Reef Control die Pumpe aus und verriegelt die Regelung, bis du sie bewusst aus- und wieder einschaltest.",
-          "ato_cooldown": "Mindestwartezeit nach einer abgeschlossenen Nachfüllung, bevor erneut nachgefüllt werden darf."
+          "ato_cooldown": "Mindestwartezeit nach einer abgeschlossenen Nachfüllung, bevor erneut nachgefüllt werden darf.",
+          "water_level_mode": "Automatisch erkennt Reef Control digitale Sensoren und numerische cm-Werte. Die Art kann bei Bedarf fest vorgegeben werden.",
+          "water_level_low_cm": "Bei einem numerischen Wasserstand gilt dieser Wert oder weniger als zu niedrig.",
+          "water_level_high_cm": "Bei einem numerischen Wasserstand gilt dieser Wert oder mehr als zu hoch."
         }
       },
       "equipment_control": {
