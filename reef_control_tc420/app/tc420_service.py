@@ -1,8 +1,8 @@
 """Safe TC420 / SIMU-LUX USB diagnostic service for Reef Control.
 
-This first version only detects the controller and can optionally synchronize
-its internal clock. It deliberately does not change channel levels or stored
-lighting programs.
+v0.1.1 keeps the first diagnostic stage intentionally conservative:
+it detects the controller and can synchronize only its internal clock.
+Channel levels and stored lighting programs are never modified.
 """
 
 from __future__ import annotations
@@ -16,6 +16,8 @@ from pathlib import Path
 
 import usb.core
 import usb.util
+
+APP_VERSION = "0.1.1"
 
 VENDOR_ID = 0x0888
 PRODUCT_ID = 0x4000
@@ -58,6 +60,7 @@ def find_controller():
 
 
 def build_packet(command: int, data: bytes = b"") -> bytes:
+    """Create one 64-byte TC420 protocol packet."""
     if len(data) > 56:
         raise ValueError("TC420 payload is too large")
 
@@ -66,6 +69,8 @@ def build_packet(command: int, data: bytes = b"") -> bytes:
     packet[2] = command & 0xFF
     struct.pack_into("!H", packet, 3, len(data))
     packet[5 : 5 + len(data)] = data
+
+    # TC420 checksum is the additive checksum over bytes 0..60.
     packet[61] = sum(packet[:61]) & 0xFF
     packet[62] = 0x0D
     packet[63] = 0x0A
@@ -86,48 +91,104 @@ def build_time_sync_packet(now: datetime | None = None) -> bytes:
     return build_packet(TIME_SYNC_COMMAND, payload)
 
 
-def _find_endpoints(interface):
-    in_ep = None
-    out_ep = None
+def _endpoint_description(endpoint) -> str:
+    address = int(endpoint.bEndpointAddress)
+    direction = (
+        "IN"
+        if usb.util.endpoint_direction(address) == usb.util.ENDPOINT_IN
+        else "OUT"
+    )
+    return f"0x{address:02x} ({direction})"
 
-    for endpoint in interface:
-        direction = usb.util.endpoint_direction(endpoint.bEndpointAddress)
-        if direction == usb.util.ENDPOINT_IN:
-            in_ep = endpoint
-        elif direction == usb.util.ENDPOINT_OUT:
-            out_ep = endpoint
 
-    if in_ep is None or out_ep is None:
-        raise RuntimeError("Could not find TC420 USB IN/OUT endpoints")
+def open_tc420_interface(device):
+    """Open the TC420 exactly using interface 0 and its two fixed endpoints.
 
-    return in_ep, out_ep
+    The known TC420 implementation uses interface (0, 0), endpoint index 0
+    for input and endpoint index 1 for output. We follow that layout here
+    instead of claiming and rediscovering endpoints ourselves.
+    """
+    detached_kernel_driver = False
+
+    try:
+        if device.is_kernel_driver_active(INTERFACE):
+            device.detach_kernel_driver(INTERFACE)
+            detached_kernel_driver = True
+            log("INFO", "Detached kernel HID driver from interface 0.")
+    except (NotImplementedError, usb.core.USBError) as err:
+        log("WARNING", f"Could not query/detach kernel driver: {err}")
+
+    configuration = device[0]
+    interface = configuration[(INTERFACE, 0)]
+
+    if len(interface) < 2:
+        raise RuntimeError(
+            f"TC420 interface exposes only {len(interface)} endpoint(s), expected 2"
+        )
+
+    in_ep = interface[0]
+    out_ep = interface[1]
+
+    in_direction = usb.util.endpoint_direction(in_ep.bEndpointAddress)
+    out_direction = usb.util.endpoint_direction(out_ep.bEndpointAddress)
+
+    log(
+        "INFO",
+        "TC420 endpoints: "
+        f"intf[0]={_endpoint_description(in_ep)}, "
+        f"intf[1]={_endpoint_description(out_ep)}",
+    )
+
+    if in_direction != usb.util.ENDPOINT_IN:
+        raise RuntimeError(
+            "Unexpected TC420 endpoint layout: interface endpoint 0 is not IN"
+        )
+    if out_direction != usb.util.ENDPOINT_OUT:
+        raise RuntimeError(
+            "Unexpected TC420 endpoint layout: interface endpoint 1 is not OUT"
+        )
+
+    return in_ep, out_ep, detached_kernel_driver
+
+
+def close_tc420_interface(device, detached_kernel_driver: bool) -> None:
+    """Release PyUSB resources and restore the HID kernel driver if possible."""
+    usb.util.dispose_resources(device)
+
+    if detached_kernel_driver:
+        try:
+            device.attach_kernel_driver(INTERFACE)
+            log("INFO", "Reattached kernel HID driver to interface 0.")
+        except (NotImplementedError, usb.core.USBError) as err:
+            log("WARNING", f"Could not reattach kernel HID driver: {err}")
 
 
 def synchronize_clock(device) -> None:
+    """Synchronize the TC420 clock without touching channels or programs."""
     detached_kernel_driver = False
-    claimed = False
 
     try:
-        try:
-            if device.is_kernel_driver_active(INTERFACE):
-                device.detach_kernel_driver(INTERFACE)
-                detached_kernel_driver = True
-        except (NotImplementedError, usb.core.USBError):
-            pass
-
-        configuration = device[0]
-        interface = configuration[(INTERFACE, 0)]
-        in_ep, out_ep = _find_endpoints(interface)
-
-        usb.util.claim_interface(device, INTERFACE)
-        claimed = True
+        in_ep, out_ep, detached_kernel_driver = open_tc420_interface(device)
 
         now = datetime.now()
-        out_ep.write(build_time_sync_packet(now), timeout=USB_TIMEOUT_MS)
+        packet = build_time_sync_packet(now)
+
+        log(
+            "INFO",
+            "Sending TC420 clock-sync command "
+            f"for {now.strftime('%Y-%m-%d %H:%M:%S')}...",
+        )
+
+        written = out_ep.write(packet, timeout=USB_TIMEOUT_MS)
+        log("INFO", f"Clock-sync packet written: {written}/{PACKET_SIZE} bytes.")
+
         response = bytes(in_ep.read(PACKET_SIZE, timeout=USB_TIMEOUT_MS))
+        log("INFO", f"TC420 response received: {len(response)} bytes.")
 
         if len(response) < 6:
-            raise RuntimeError(f"TC420 returned a short response ({len(response)} bytes)")
+            raise RuntimeError(
+                f"TC420 returned a short response ({len(response)} bytes)"
+            )
 
         data_len = int.from_bytes(response[3:5], byteorder="big")
         status = response[5] if data_len >= 1 else None
@@ -145,35 +206,28 @@ def synchronize_clock(device) -> None:
         )
 
     finally:
-        if claimed:
-            try:
-                usb.util.release_interface(device, INTERFACE)
-            except usb.core.USBError:
-                pass
-
-        if detached_kernel_driver:
-            try:
-                device.attach_kernel_driver(INTERFACE)
-            except (NotImplementedError, usb.core.USBError):
-                pass
-
-        usb.util.dispose_resources(device)
+        close_tc420_interface(device, detached_kernel_driver)
 
 
 def describe_device(device) -> str:
     bus = getattr(device, "bus", None)
     address = getattr(device, "address", None)
+
     location = ""
     if bus is not None and address is not None:
         location = f", bus={bus}, address={address}"
+
     return f"VID:PID={device.idVendor:04x}:{device.idProduct:04x}{location}"
 
 
 def main() -> None:
     sync_time_on_connect, poll_interval = read_options()
 
-    log("INFO", "Reef Control TC420 USB v0.1.0")
-    log("INFO", f"Watching for TC420 / SIMU-LUX {VENDOR_ID:04x}:{PRODUCT_ID:04x}")
+    log("INFO", f"Reef Control TC420 USB v{APP_VERSION}")
+    log(
+        "INFO",
+        f"Watching for TC420 / SIMU-LUX {VENDOR_ID:04x}:{PRODUCT_ID:04x}",
+    )
     log("INFO", f"Poll interval: {poll_interval} s")
     log(
         "INFO",
@@ -204,6 +258,7 @@ def main() -> None:
             connected = True
             sync_attempted = False
             log("INFO", "TC420 detected: " + describe_device(device))
+
         elif device is None and connected:
             connected = False
             sync_attempted = False
@@ -214,7 +269,11 @@ def main() -> None:
             try:
                 synchronize_clock(device)
             except usb.core.USBError as err:
-                log("ERROR", f"TC420 clock synchronization failed with USB error: {err}")
+                log(
+                    "ERROR",
+                    "TC420 clock synchronization failed with USB error: "
+                    f"{err}",
+                )
             except Exception as err:
                 log("ERROR", f"TC420 clock synchronization failed: {err}")
 
