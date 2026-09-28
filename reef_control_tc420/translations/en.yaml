@@ -1,19 +1,25 @@
 configuration:
+  bridge_enabled:
+    name: Enable Reef Control bridge
+    description: Reads the four light channels from Reef Control and keeps TC420 fast-play active. Channel 5 stays at 0 percent.
+  ha_poll_interval:
+    name: Home Assistant polling interval
+    description: Seconds between reads of the desired light values from Reef Control.
   sync_time_on_connect:
     name: Synchronize clock on connect
-    description: Synchronizes the TC420 internal clock. USB timeouts no longer stop the app.
+    description: Synchronizes the TC420 internal clock in diagnostic mode.
   poll_interval:
     name: USB polling interval
-    description: Seconds between USB checks.
+    description: Polling interval used in diagnostic mode.
   live_test_token:
     name: Live test token
-    description: 0 disables it. A new positive number runs exactly one test.
+    description: Used only while bridge mode is disabled. A new positive number runs exactly one test.
   live_test_channel:
     name: Live test channel
-    description: Channel 1 through 5.
+    description: Diagnostic channel 1 through 4.
   live_test_level:
     name: Live test brightness
-    description: Percentage, capped at 20 percent in this version.
+    description: Diagnostic value capped at 20 percent.
   live_test_seconds:
     name: Live test duration
-    description: Seconds, capped at 5 seconds in this version.
+    description: Diagnostic duration capped at 5 seconds.

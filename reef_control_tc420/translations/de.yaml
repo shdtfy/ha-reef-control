@@ -1,19 +1,25 @@
 configuration:
+  bridge_enabled:
+    name: Reef Control Bridge aktivieren
+    description: Übernimmt die vier Lichtkanäle aus Reef Control und hält den TC420 Live-Modus aktiv. Kanal 5 bleibt bei 0 Prozent.
+  ha_poll_interval:
+    name: Home-Assistant-Abfrageintervall
+    description: Sekunden zwischen den Abfragen der gewünschten Lichtwerte aus Reef Control.
   sync_time_on_connect:
     name: Uhrzeit beim Verbinden synchronisieren
-    description: Synchronisiert die interne Uhr des TC420. USB-Timeouts beenden die App nicht mehr.
+    description: Synchronisiert im Diagnosemodus die interne Uhr des TC420.
   poll_interval:
     name: USB-Prüfintervall
-    description: Sekunden zwischen den USB-Prüfungen.
+    description: Prüfintervall im Diagnosemodus.
   live_test_token:
     name: Live-Test Token
-    description: 0 deaktiviert. Eine neue positive Zahl startet genau einen Test.
+    description: Wird nur verwendet, wenn der Bridge-Modus deaktiviert ist. Eine neue positive Zahl startet genau einen Test.
   live_test_channel:
     name: Live-Test Kanal
-    description: Kanal 1 bis 5.
+    description: Diagnosekanal 1 bis 4.
   live_test_level:
     name: Live-Test Helligkeit
-    description: Prozentwert, in dieser Version auf maximal 20 Prozent begrenzt.
+    description: Diagnosewert, auf maximal 20 Prozent begrenzt.
   live_test_seconds:
     name: Live-Test Dauer
-    description: Dauer in Sekunden, in dieser Version auf maximal 5 Sekunden begrenzt.
+    description: Diagnosedauer, auf maximal 5 Sekunden begrenzt.
