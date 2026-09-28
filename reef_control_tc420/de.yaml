@@ -1,7 +1,0 @@
-configuration:
-  sync_time_on_connect:
-    name: Uhrzeit beim Verbinden synchronisieren
-    description: Sendet beim Erkennen des TC420 ausschließlich den Befehl zur Uhrzeitsynchronisierung.
-  poll_interval:
-    name: USB-Prüfintervall
-    description: Zeit in Sekunden zwischen den Prüfungen, ob der Controller verbunden ist.
