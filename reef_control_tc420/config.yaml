@@ -1,5 +1,5 @@
 name: Reef Control TC420 USB
-version: "0.3.0"
+version: "0.3.1"
 slug: reef_control_tc420
 description: USB bridge for Reef Control and TC420 / SIMU-LUX lighting controllers
 url: https://github.com/shdtfy/ha-reef-control

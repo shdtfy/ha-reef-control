@@ -1,4 +1,4 @@
-# Reef Control TC420 USB v0.3.0
+# Reef Control TC420 USB v0.3.1
 
 Version 0.3.0 turns the diagnostic USB app into a permanent Reef Control lighting bridge.
 
@@ -34,3 +34,7 @@ live_test_seconds: 3
 ## Home Assistant entities
 
 The matching Reef Control integration update creates four `number` entities from 0 to 100 percent. These values are Reef Control **setpoints**, not physical readback values from the TC420.
+
+## Play-init ACK fallback
+
+Some TC420 / SIMU-LUX controllers accept the fast-play initialization command but do not return its ACK before the USB timeout. Version 0.3.1 keeps the existing retry logic, then clears delayed replies and probes fast-play with all five channels at 0%. If the probe is acknowledged, the bridge keeps the same USB session open and continues normally.
