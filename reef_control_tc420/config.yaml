@@ -1,5 +1,5 @@
 name: Reef Control TC420 USB
-version: "0.1.0"
+version: "0.1.1"
 slug: reef_control_tc420
 description: Safe USB diagnostic bridge for TC420 / SIMU-LUX controllers
 url: https://github.com/shdtfy/ha-reef-control
