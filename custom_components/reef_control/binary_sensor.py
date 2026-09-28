@@ -7,9 +7,17 @@ from homeassistant.core import callback
 from datetime import timedelta
 from .const import *
 
-async def async_setup_entry(hass,entry,async_add_entities): async_add_entities([ReefControlSafetyAlert(hass,entry),ReefControlEquipmentInterlock(hass,entry)])
+async def async_setup_entry(hass,entry,async_add_entities):
+    async_add_entities([
+        ReefControlSafetyAlert(hass,entry),
+        ReefControlEquipmentInterlock(hass,entry),
+        ReefControlLeakAlert(hass,entry),
+    ])
+
 class _Base(BinarySensorEntity):
-    _attr_has_entity_name=True; _attr_entity_category=EntityCategory.DIAGNOSTIC; _attr_device_class=BinarySensorDeviceClass.PROBLEM
+    _attr_has_entity_name=True
+    _attr_entity_category=EntityCategory.DIAGNOSTIC
+    _attr_device_class=BinarySensorDeviceClass.PROBLEM
     def __init__(self,hass,entry): self.hass=hass; self.entry=entry; self._remove=None
     @property
     def device_info(self): return DeviceInfo(identifiers={(DOMAIN,self.entry.entry_id)},name=self.entry.data[CONF_AQUARIUM_NAME],manufacturer="Reef Control",model="Reef Aquarium",sw_version=VERSION)
@@ -20,6 +28,7 @@ class _Base(BinarySensorEntity):
         self._remove=async_track_time_interval(self.hass,upd,timedelta(seconds=2))
     async def async_will_remove_from_hass(self):
         if self._remove:self._remove(); self._remove=None
+
 class ReefControlSafetyAlert(_Base):
     _attr_name="Sicherheitsalarm"; _attr_icon="mdi:shield-alert"
     def __init__(self,hass,entry): super().__init__(hass,entry); self._attr_unique_id=f"{entry.entry_id}_safety_alert"
@@ -27,6 +36,7 @@ class ReefControlSafetyAlert(_Base):
     def is_on(self): return bool(self._r().get("safety_reasons"))
     @property
     def extra_state_attributes(self): return {"status":self._r().get("safety_status","Unbekannt"),"reasons":self._r().get("safety_reasons",[])}
+
 class ReefControlEquipmentInterlock(_Base):
     _attr_name="Techniksperre"; _attr_icon="mdi:cog-pause"
     def __init__(self,hass,entry): super().__init__(hass,entry); self._attr_unique_id=f"{entry.entry_id}_equipment_interlock"
@@ -34,3 +44,21 @@ class ReefControlEquipmentInterlock(_Base):
     def is_on(self): return bool(self._r().get("equipment_paused_entities"))
     @property
     def extra_state_attributes(self): return {"status":self._r().get("equipment_control_status","Deaktiviert"),"paused_entities":self._r().get("equipment_paused_entities",[]),"return_pump_on":self._r().get("return_pump_available")}
+
+class ReefControlLeakAlert(_Base):
+    _attr_name="Leckagealarm"; _attr_icon="mdi:water-alert"
+    def __init__(self,hass,entry): super().__init__(hass,entry); self._attr_unique_id=f"{entry.entry_id}_leak_alert"
+    @property
+    def is_on(self):
+        r=self._r()
+        return bool(r.get("leak_detected") or r.get("leak_latched"))
+    @property
+    def extra_state_attributes(self):
+        r=self._r()
+        return {
+            "leak_detected":bool(r.get("leak_detected")),
+            "latched":bool(r.get("leak_latched")),
+            "source_entity":self.entry.options.get(CONF_LEAK_ENTITY),
+            "source_state":r.get("leak_source_state"),
+            "active_state":self.entry.options.get(CONF_LEAK_ACTIVE_STATE,DEFAULT_LEAK_ACTIVE_STATE),
+        }

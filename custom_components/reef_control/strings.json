@@ -53,7 +53,8 @@
           "uvc_entity": "UV-C sterilizer",
           "light_entity": "Aquarium lighting",
           "heater_entity": "Heater",
-          "ato_entity": "Auto top-off (ATO)"
+          "ato_entity": "Auto top-off (ATO)",
+          "leak_entity": "Leak sensor"
         },
         "data_description": {
           "skimmer_entity": "Entity that switches the protein skimmer on and off.",
@@ -62,7 +63,8 @@
           "uvc_entity": "Entity that switches the UV-C sterilizer on and off.",
           "light_entity": "Entity used to control the aquarium lighting.",
           "heater_entity": "Entity that switches the aquarium heater. Reef Control can use this entity for automatic temperature control.",
-          "ato_entity": "Entity that switches the automatic top-off pump. Reef Control can use it for automatic water level control."
+          "ato_entity": "Entity that switches the automatic top-off pump. Reef Control can use it for automatic water level control.",
+          "leak_entity": "Binary sensor or input boolean that detects water or a leak."
         }
       },
       "water_values": {
@@ -257,16 +259,30 @@
       },
       "safety_control": {
         "title": "Safety control",
-        "description": "Central aquarium protection. Safety rules take priority over normal timers and control logic.",
+        "description": "Central aquarium protection. Safety rules take priority over normal timers and control logic. A detected leak remains latched until safety control is deliberately switched off and on again.",
         "data": {
           "safety_control_enabled": "Enable safety control",
           "safety_heater_high_temp": "Immediately switch heater off at critical high temperature",
-          "safety_heater_sensor_fail": "Switch heater off if temperature sensor fails"
+          "safety_heater_sensor_fail": "Switch heater off if temperature sensor fails",
+          "leak_active_state": "State meaning leak detected",
+          "safety_leak_shutdown": "Enable emergency shutdown on leak",
+          "safety_leak_return_pump": "Switch return pump off on leak",
+          "safety_leak_skimmer": "Switch skimmer off on leak",
+          "safety_leak_uvc": "Switch UV-C off on leak",
+          "safety_leak_ato": "Switch auto top-off off on leak",
+          "safety_leak_heater": "Switch heater off on leak"
         },
         "data_description": {
           "safety_control_enabled": "Enables Reef Control central safety interlocks.",
           "safety_heater_high_temp": "If temperature reaches the configured critical maximum, the heater is switched off immediately without waiting for minimum run time.",
-          "safety_heater_sensor_fail": "Fail-safe: if the configured temperature sensor is unavailable or invalid, an active heater is switched off."
+          "safety_heater_sensor_fail": "Fail-safe: if the configured temperature sensor is unavailable or invalid, an active heater is switched off.",
+          "leak_active_state": "Choose whether ON or OFF from your sensor means that a leak has been detected.",
+          "safety_leak_shutdown": "Enables the latched leak safety stop. After a leak, Reef Control does not automatically restart equipment it switched off.",
+          "safety_leak_return_pump": "Switches the assigned return pump off during a leak safety stop.",
+          "safety_leak_skimmer": "Switches the assigned protein skimmer off during a leak safety stop.",
+          "safety_leak_uvc": "Switches the assigned UV-C device off during a leak safety stop.",
+          "safety_leak_ato": "Immediately switches the assigned auto top-off off and keeps it off during a leak safety stop.",
+          "safety_leak_heater": "Switches the assigned heater off during a leak safety stop."
         }
       },
       "uvc_control": {

@@ -1,7 +1,7 @@
 """Constants for Reef Control."""
 
 DOMAIN = "reef_control"
-VERSION = "0.9.0"
+VERSION = "0.10.0"
 
 DEFAULT_AQUARIUM_NAME = "My Reef"
 
@@ -18,6 +18,7 @@ CONF_CONDUCTIVITY_ENTITY = "conductivity_entity"
 CONF_REDOX_ENTITY = "redox_entity"
 CONF_SALINITY_SOURCE = "salinity_source"
 CONF_WATER_LEVEL_ENTITY = "water_level_entity"
+CONF_LEAK_ENTITY = "leak_entity"
 
 CONF_REEF_ICP_ENTRY = "reef_icp_entry"
 REEF_ICP_DOMAIN = "reef_icp"
@@ -111,6 +112,22 @@ CONF_SAFETY_HEATER_SENSOR_FAIL = "safety_heater_sensor_fail"
 DEFAULT_SAFETY_CONTROL_ENABLED = True
 DEFAULT_SAFETY_HEATER_HIGH_TEMP = True
 DEFAULT_SAFETY_HEATER_SENSOR_FAIL = True
+
+# Leak protection
+CONF_LEAK_ACTIVE_STATE = "leak_active_state"
+CONF_SAFETY_LEAK_SHUTDOWN = "safety_leak_shutdown"
+CONF_SAFETY_LEAK_RETURN_PUMP = "safety_leak_return_pump"
+CONF_SAFETY_LEAK_SKIMMER = "safety_leak_skimmer"
+CONF_SAFETY_LEAK_UVC = "safety_leak_uvc"
+CONF_SAFETY_LEAK_ATO = "safety_leak_ato"
+CONF_SAFETY_LEAK_HEATER = "safety_leak_heater"
+DEFAULT_LEAK_ACTIVE_STATE = "on"
+DEFAULT_SAFETY_LEAK_SHUTDOWN = True
+DEFAULT_SAFETY_LEAK_RETURN_PUMP = True
+DEFAULT_SAFETY_LEAK_SKIMMER = True
+DEFAULT_SAFETY_LEAK_UVC = True
+DEFAULT_SAFETY_LEAK_ATO = True
+DEFAULT_SAFETY_LEAK_HEATER = True
 
 # UV-C control
 CONF_UVC_CONTROL_ENABLED = "uvc_control_enabled"

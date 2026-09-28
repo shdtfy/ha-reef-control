@@ -219,7 +219,7 @@ class ReefControlParameterStatusSensor(ReefControlRuntimeSensor):
         value=evaluate(self.hass,self._entry,self.param)[1]
         if value is None:return None
         if self.param=="temperature":return round(value,1)
-        if self.param=="salinity":return round(value,2)
+        if self.param=="salinity":return round(value,1)
         if self.param=="redox":return round(value,0)
         return value
 
@@ -259,7 +259,7 @@ class ReefControlConductivitySensor(ReefControlRuntimeSensor):
     def native_value(self):
         value,unit,_=_state_number(self.hass,self._entry.options.get(CONF_CONDUCTIVITY_ENTITY))
         value=_conductivity_ms_cm(value,unit)
-        return round(value,2) if value is not None else None
+        return round(value,1) if value is not None else None
     @property
     def native_unit_of_measurement(self):
         return "mS/cm"
@@ -484,6 +484,8 @@ class ReefControlOverallStatusSensor(ReefControlRuntimeSensor):
     @property
     def native_value(self):
         vals=list(self._results().values());active=[v for v in vals if v!="Nicht konfiguriert"];snap=_icp_snapshot(self.hass,self._entry);icp=snap["status"] if snap["connected"] else "Nicht konfiguriert";icp_age=snap.get("analysis_age_days");icp_stale=icp_age is not None and icp_age>90
+        safety_reasons=self._runtime().get("safety_reasons",[])
+        if safety_reasons:return "Kritisch"
         if not active and icp=="Nicht konfiguriert":return "Keine Messwerte"
         if any(v.startswith("Kritisch") for v in active) or (icp=="Kritisch" and not icp_stale):return "Kritisch"
         if any(v in ("Zu niedrig","Zu hoch","Nicht verfügbar") for v in active) or (icp in ("Auffällig","Nicht verfügbar") and not icp_stale):return "Warnung"
@@ -496,6 +498,8 @@ class ReefControlOverallStatusSensor(ReefControlRuntimeSensor):
         issues=[f"{labels.get(param,param)}: {status}" for param,status in results.items() if status not in ("Normal","Nicht konfiguriert")]
         icp_age=snap.get("analysis_age_days");icp_stale=icp_age is not None and icp_age>90
         if icp not in ("Gut","Nicht konfiguriert","Keine Analyse") and not icp_stale:issues.append(f"ICP: {icp}")
+        safety_reasons=self._runtime().get("safety_reasons",[])
+        issues.extend(f"Sicherheit: {reason}" for reason in safety_reasons)
         active_sources=sum(1 for status in results.values() if status!="Nicht konfiguriert")
         if snap["connected"]:active_sources+=1
-        return {"temperature":results["temperature"],"ph":results["ph"],"salinity":results["salinity"],"redox":results["redox"],"icp":icp,"icp_connected":snap["connected"],"icp_provider":snap.get("provider"),"icp_analysis_date":snap.get("analysis_date"),"icp_analysis_age_days":snap.get("analysis_age_days"),"icp_stale":icp_stale,"icp_issue_count":snap.get("issue_count",0),"active_status_sources":active_sources,"issue_count":len(issues),"issues":issues}
+        return {"temperature":results["temperature"],"ph":results["ph"],"salinity":results["salinity"],"redox":results["redox"],"leak_detected":bool(self._runtime().get("leak_detected")),"leak_latched":bool(self._runtime().get("leak_latched")),"safety_status":self._runtime().get("safety_status"),"icp":icp,"icp_connected":snap["connected"],"icp_provider":snap.get("provider"),"icp_analysis_date":snap.get("analysis_date"),"icp_analysis_age_days":snap.get("analysis_age_days"),"icp_stale":icp_stale,"icp_issue_count":snap.get("issue_count",0),"active_status_sources":active_sources,"issue_count":len(issues),"issues":issues}

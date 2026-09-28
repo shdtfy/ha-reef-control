@@ -47,6 +47,7 @@ class ReefControlOptionsFlow(config_entries.OptionsFlow):
         for key in (CONF_SKIMMER_ENTITY,CONF_RETURN_PUMP_ENTITY,CONF_FLOW_PUMP_ENTITY,CONF_UVC_ENTITY,CONF_HEATER_ENTITY,CONF_ATO_ENTITY):
             fields[vol.Optional(key,description=self._suggested(key))]=selector.EntitySelector(selector.EntitySelectorConfig(domain=switch_domains))
         fields[vol.Optional(CONF_LIGHT_ENTITY,description=self._suggested(CONF_LIGHT_ENTITY))]=selector.EntitySelector(selector.EntitySelectorConfig(domain=["light","switch","input_boolean"]))
+        fields[vol.Optional(CONF_LEAK_ENTITY,description=self._suggested(CONF_LEAK_ENTITY))]=selector.EntitySelector(selector.EntitySelectorConfig(domain=["binary_sensor","input_boolean"]))
         return self.async_show_form(step_id="entities",data_schema=vol.Schema(fields))
     async def async_step_water_values(self,user_input=None)->FlowResult:
         if user_input is not None:return await self._save(user_input)
@@ -117,6 +118,18 @@ class ReefControlOptionsFlow(config_entries.OptionsFlow):
             vol.Optional(CONF_SAFETY_CONTROL_ENABLED,default=self._options.get(CONF_SAFETY_CONTROL_ENABLED,DEFAULT_SAFETY_CONTROL_ENABLED)):bool,
             vol.Optional(CONF_SAFETY_HEATER_HIGH_TEMP,default=self._options.get(CONF_SAFETY_HEATER_HIGH_TEMP,DEFAULT_SAFETY_HEATER_HIGH_TEMP)):bool,
             vol.Optional(CONF_SAFETY_HEATER_SENSOR_FAIL,default=self._options.get(CONF_SAFETY_HEATER_SENSOR_FAIL,DEFAULT_SAFETY_HEATER_SENSOR_FAIL)):bool,
+            vol.Optional(CONF_LEAK_ACTIVE_STATE,default=self._options.get(CONF_LEAK_ACTIVE_STATE,DEFAULT_LEAK_ACTIVE_STATE)):selector.SelectSelector(
+                selector.SelectSelectorConfig(options=[
+                    selector.SelectOptionDict(value="on",label="ON"),
+                    selector.SelectOptionDict(value="off",label="OFF"),
+                ],mode=selector.SelectSelectorMode.DROPDOWN)
+            ),
+            vol.Optional(CONF_SAFETY_LEAK_SHUTDOWN,default=self._options.get(CONF_SAFETY_LEAK_SHUTDOWN,DEFAULT_SAFETY_LEAK_SHUTDOWN)):bool,
+            vol.Optional(CONF_SAFETY_LEAK_RETURN_PUMP,default=self._options.get(CONF_SAFETY_LEAK_RETURN_PUMP,DEFAULT_SAFETY_LEAK_RETURN_PUMP)):bool,
+            vol.Optional(CONF_SAFETY_LEAK_SKIMMER,default=self._options.get(CONF_SAFETY_LEAK_SKIMMER,DEFAULT_SAFETY_LEAK_SKIMMER)):bool,
+            vol.Optional(CONF_SAFETY_LEAK_UVC,default=self._options.get(CONF_SAFETY_LEAK_UVC,DEFAULT_SAFETY_LEAK_UVC)):bool,
+            vol.Optional(CONF_SAFETY_LEAK_ATO,default=self._options.get(CONF_SAFETY_LEAK_ATO,DEFAULT_SAFETY_LEAK_ATO)):bool,
+            vol.Optional(CONF_SAFETY_LEAK_HEATER,default=self._options.get(CONF_SAFETY_LEAK_HEATER,DEFAULT_SAFETY_LEAK_HEATER)):bool,
         }
         return self.async_show_form(step_id="safety_control",data_schema=vol.Schema(fields))
     async def async_step_reef_icp(self,user_input=None)->FlowResult:
