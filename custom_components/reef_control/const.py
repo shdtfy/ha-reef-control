@@ -1,7 +1,7 @@
 """Constants for Reef Control."""
 
 DOMAIN = "reef_control"
-VERSION = "0.10.0"
+VERSION = "0.11.0"
 
 DEFAULT_AQUARIUM_NAME = "My Reef"
 
@@ -19,6 +19,19 @@ CONF_REDOX_ENTITY = "redox_entity"
 CONF_SALINITY_SOURCE = "salinity_source"
 CONF_WATER_LEVEL_ENTITY = "water_level_entity"
 CONF_LEAK_ENTITY = "leak_entity"
+
+
+# Water-level monitoring
+CONF_WATER_LEVEL_MODE = "water_level_mode"
+CONF_WATER_LEVEL_LOW_CM = "water_level_low_cm"
+CONF_WATER_LEVEL_HIGH_CM = "water_level_high_cm"
+DEFAULT_WATER_LEVEL_MODE = "auto"
+DEFAULT_WATER_LEVEL_LOW_CM = 15.0
+DEFAULT_WATER_LEVEL_HIGH_CM = 25.0
+
+# Alarm system
+EVENT_ALARM = "reef_control_alarm"
+EVENT_ALARM_CLEARED = "reef_control_alarm_cleared"
 
 CONF_REEF_ICP_ENTRY = "reef_icp_entry"
 REEF_ICP_DOMAIN = "reef_icp"

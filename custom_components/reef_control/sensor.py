@@ -26,6 +26,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
         ReefControlIcpSensor(hass,entry),
         ReefControlWaterValuesSensor(hass,entry),
         ReefControlOverallStatusSensor(hass,entry),
+        ReefControlActiveAlarmsSensor(hass,entry),
+        ReefControlAtoStatisticsSensor(hass,entry),
+        ReefControlWaterLevelSensor(hass,entry),
     ])
 
 class ReefControlBaseSensor(SensorEntity):
@@ -503,3 +506,52 @@ class ReefControlOverallStatusSensor(ReefControlRuntimeSensor):
         active_sources=sum(1 for status in results.values() if status!="Nicht konfiguriert")
         if snap["connected"]:active_sources+=1
         return {"temperature":results["temperature"],"ph":results["ph"],"salinity":results["salinity"],"redox":results["redox"],"leak_detected":bool(self._runtime().get("leak_detected")),"leak_latched":bool(self._runtime().get("leak_latched")),"safety_status":self._runtime().get("safety_status"),"icp":icp,"icp_connected":snap["connected"],"icp_provider":snap.get("provider"),"icp_analysis_date":snap.get("analysis_date"),"icp_analysis_age_days":snap.get("analysis_age_days"),"icp_stale":icp_stale,"icp_issue_count":snap.get("issue_count",0),"active_status_sources":active_sources,"issue_count":len(issues),"issues":issues}
+
+
+class ReefControlActiveAlarmsSensor(ReefControlRuntimeSensor):
+    _attr_name="Aktive Alarme"
+    _attr_icon="mdi:alarm-light-outline"
+    _attr_entity_category=EntityCategory.DIAGNOSTIC
+    def __init__(self,hass,entry):
+        super().__init__(hass,entry); self._attr_unique_id=f"{entry.entry_id}_active_alarms"
+    @property
+    def native_value(self):
+        return len(self._runtime().get("active_alarms",[]))
+    @property
+    def extra_state_attributes(self):
+        r=self._runtime()
+        return {"alarms":r.get("active_alarms",[]),"history":r.get("alarm_history",[])}
+
+class ReefControlAtoStatisticsSensor(ReefControlRuntimeSensor):
+    _attr_name="ATO Statistik"
+    _attr_icon="mdi:water-plus-outline"
+    _attr_entity_category=EntityCategory.DIAGNOSTIC
+    def __init__(self,hass,entry):
+        super().__init__(hass,entry); self._attr_unique_id=f"{entry.entry_id}_ato_statistics"
+    @property
+    def native_value(self):
+        return int(self._runtime().get("ato_statistics",{}).get("fills_today",0))
+    @property
+    def extra_state_attributes(self):
+        return self._runtime().get("ato_statistics",{})
+
+class ReefControlWaterLevelSensor(ReefControlRuntimeSensor):
+    _attr_name="Wasserstand"
+    _attr_icon="mdi:waves-arrow-up"
+    def __init__(self,hass,entry):
+        super().__init__(hass,entry); self._attr_unique_id=f"{entry.entry_id}_water_level"
+    @property
+    def native_value(self):
+        wl=self._runtime().get("water_level",{})
+        value=wl.get("value")
+        if isinstance(value,(int,float)): return value
+        return wl.get("status","Nicht konfiguriert")
+    @property
+    def native_unit_of_measurement(self):
+        wl=self._runtime().get("water_level",{})
+        return wl.get("unit") if isinstance(wl.get("value"),(int,float)) else None
+    @property
+    def extra_state_attributes(self):
+        wl=dict(self._runtime().get("water_level",{}))
+        wl.pop("value",None); wl.pop("unit",None)
+        return wl

@@ -61,7 +61,7 @@ class ReefControlOptionsFlow(config_entries.OptionsFlow):
                 selector.SelectOptionDict(value="calculated",label="Aus Leitfähigkeit + Temperatur berechnen"),
             ],mode=selector.SelectSelectorMode.DROPDOWN)
         )
-        fields[vol.Optional(CONF_WATER_LEVEL_ENTITY,description=self._suggested(CONF_WATER_LEVEL_ENTITY))]=selector.EntitySelector(selector.EntitySelectorConfig(domain=["binary_sensor","input_boolean"]))
+        fields[vol.Optional(CONF_WATER_LEVEL_ENTITY,description=self._suggested(CONF_WATER_LEVEL_ENTITY))]=selector.EntitySelector(selector.EntitySelectorConfig(domain=["binary_sensor","input_boolean","sensor","input_number"]))
         return self.async_show_form(step_id="water_values",data_schema=vol.Schema(fields))
     async def async_step_temperature_control(self,user_input=None)->FlowResult:
         if user_input is not None:return await self._save(user_input)
@@ -78,10 +78,19 @@ class ReefControlOptionsFlow(config_entries.OptionsFlow):
             vol.Optional(CONF_ATO_LOW_STATE,default=self._options.get(CONF_ATO_LOW_STATE,DEFAULT_ATO_LOW_STATE)):selector.SelectSelector(
                 selector.SelectSelectorConfig(options=[selector.SelectOptionDict(value="on",label="ON"),selector.SelectOptionDict(value="off",label="OFF")],mode=selector.SelectSelectorMode.DROPDOWN)
             ),
+            vol.Optional(CONF_WATER_LEVEL_MODE,default=self._options.get(CONF_WATER_LEVEL_MODE,DEFAULT_WATER_LEVEL_MODE)):selector.SelectSelector(
+                selector.SelectSelectorConfig(options=[
+                    selector.SelectOptionDict(value="auto",label="Automatisch"),
+                    selector.SelectOptionDict(value="binary",label="Digital / Schwimmerschalter"),
+                    selector.SelectOptionDict(value="level_cm",label="Kontinuierlich in cm"),
+                ],mode=selector.SelectSelectorMode.DROPDOWN)
+            ),
         }
         key,value=self._number(CONF_ATO_CONFIRM_DELAY,DEFAULT_ATO_CONFIRM_DELAY,0,30,1,"s"); fields[key]=value
         key,value=self._number(CONF_ATO_MAX_RUNTIME,DEFAULT_ATO_MAX_RUNTIME,5,600,1,"s"); fields[key]=value
         key,value=self._number(CONF_ATO_COOLDOWN,DEFAULT_ATO_COOLDOWN,0,60,1,"min"); fields[key]=value
+        key,value=self._number(CONF_WATER_LEVEL_LOW_CM,DEFAULT_WATER_LEVEL_LOW_CM,0,200,0.1,"cm"); fields[key]=value
+        key,value=self._number(CONF_WATER_LEVEL_HIGH_CM,DEFAULT_WATER_LEVEL_HIGH_CM,0,200,0.1,"cm"); fields[key]=value
         return self.async_show_form(step_id="ato_control",data_schema=vol.Schema(fields))
     async def async_step_uvc_control(self,user_input=None)->FlowResult:
         if user_input is not None:return await self._save(user_input)
