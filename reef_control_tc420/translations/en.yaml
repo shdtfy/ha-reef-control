@@ -1,7 +1,19 @@
 configuration:
   sync_time_on_connect:
     name: Synchronize clock on connect
-    description: Sends only the TC420 clock synchronization command when the controller is detected.
+    description: Synchronizes the TC420 internal clock.
   poll_interval:
     name: USB polling interval
-    description: Seconds between checks for the connected controller.
+    description: Seconds between USB checks.
+  live_test_token:
+    name: Live test token
+    description: 0 disables it. A new positive number runs exactly one test.
+  live_test_channel:
+    name: Live test channel
+    description: Channel 1 through 5.
+  live_test_level:
+    name: Live test brightness
+    description: Percentage, capped at 20 percent in this version.
+  live_test_seconds:
+    name: Live test duration
+    description: Seconds, capped at 5 seconds in this version.

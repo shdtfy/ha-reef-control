@@ -1,7 +1,19 @@
 configuration:
   sync_time_on_connect:
     name: Uhrzeit beim Verbinden synchronisieren
-    description: Sendet beim Erkennen des TC420 ausschließlich den Befehl zur Uhrzeitsynchronisierung.
+    description: Synchronisiert die interne Uhr des TC420.
   poll_interval:
     name: USB-Prüfintervall
-    description: Zeit in Sekunden zwischen den Prüfungen, ob der Controller verbunden ist.
+    description: Sekunden zwischen den USB-Prüfungen.
+  live_test_token:
+    name: Live-Test Token
+    description: 0 deaktiviert. Eine neue positive Zahl startet genau einen Test.
+  live_test_channel:
+    name: Live-Test Kanal
+    description: Kanal 1 bis 5.
+  live_test_level:
+    name: Live-Test Helligkeit
+    description: Prozentwert, in dieser Version auf maximal 20 Prozent begrenzt.
+  live_test_seconds:
+    name: Live-Test Dauer
+    description: Dauer in Sekunden, in dieser Version auf maximal 5 Sekunden begrenzt.
