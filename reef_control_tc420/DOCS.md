@@ -1,31 +1,36 @@
-# Reef Control TC420 USB v0.2.2
+# Reef Control TC420 USB v0.3.0
 
-## Fix
+Version 0.3.0 turns the diagnostic USB app into a permanent Reef Control lighting bridge.
 
-v0.2.1 exposed a PyUSB compatibility issue:
+## SEA WATER channel profile
 
-```text
-object of type 'Interface' has no len()
-```
+The SEA WATER light uses four TC420 channels. Reef Control therefore exposes only channels 1-4. TC420 channel 5 is always transmitted as **0%** and is not exposed as a Home Assistant control.
 
-The TC420 interface is now accessed directly through endpoint indexes `0` and `1`,
-matching the known TC420 implementation. No `len(interface)` call is used anymore.
+## Bridge mode
 
-The retry handling from v0.2.1 remains active:
-- 0.5 s settle delay
-- up to 3 attempts
-- 0.8 s delay between attempts
-- USB timeouts do not terminate the app
+The app reads the desired channel values directly from the Reef Control custom integration through Home Assistant's internal API. No LAN port, MQTT broker, IP address, or additional authentication is required.
 
-## Recommended next test
-
-Tokens `1` and `2` have already been consumed. Use:
+Recommended configuration after installing the matching Reef Control integration update:
 
 ```yaml
+bridge_enabled: true
+ha_poll_interval: 1
 sync_time_on_connect: false
 poll_interval: 5
-live_test_token: 3
+live_test_token: 0
 live_test_channel: 1
 live_test_level: 10
 live_test_seconds: 3
 ```
+
+## Safety behavior
+
+- Stored TC420 programs are never modified.
+- Channel 5 stays at 0%.
+- If Home Assistant channel data is unavailable for more than 10 seconds, the app stops sending fast-play keepalive packets.
+- If USB communication fails, the bridge closes the session and retries.
+- The three-attempt USB retry logic remains enabled.
+
+## Home Assistant entities
+
+The matching Reef Control integration update creates four `number` entities from 0 to 100 percent. These values are Reef Control **setpoints**, not physical readback values from the TC420.
