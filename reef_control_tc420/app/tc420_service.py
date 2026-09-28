@@ -1,288 +1,174 @@
-"""Safe TC420 / SIMU-LUX USB diagnostic service for Reef Control.
-
-v0.1.1 keeps the first diagnostic stage intentionally conservative:
-it detects the controller and can synchronize only its internal clock.
-Channel levels and stored lighting programs are never modified.
-"""
-
+"""TC420 / SIMU-LUX USB bridge for Reef Control v0.2.0."""
 from __future__ import annotations
-
-import json
-import signal
-import struct
-import time
+import json, signal, struct, time
 from datetime import datetime
 from pathlib import Path
+import usb.core, usb.util
 
-import usb.core
-import usb.util
-
-APP_VERSION = "0.1.1"
-
+APP_VERSION = "0.2.0"
 VENDOR_ID = 0x0888
 PRODUCT_ID = 0x4000
 INTERFACE = 0
 PACKET_SIZE = 64
 USB_TIMEOUT_MS = 5000
-TIME_SYNC_COMMAND = 0x11
+CMD_TIME_SYNC = 0x11
+CMD_PLAY_INIT = 0x15
+CMD_PLAY_SET_CHANNELS = 0x16
 OPTIONS_PATH = Path("/data/options.json")
-
+STATE_PATH = Path("/data/tc420_state.json")
 _running = True
 
+def log(level, msg):
+    print(f"[{level}] {msg}", flush=True)
 
-def log(level: str, message: str) -> None:
-    print(f"[{level}] {message}", flush=True)
-
-
-def _handle_stop(signum, frame) -> None:  # noqa: ARG001
+def _stop(signum, frame):
     global _running
     _running = False
 
-
-def read_options() -> tuple[bool, int]:
+def _int(data, key, default):
     try:
-        data = json.loads(OPTIONS_PATH.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        data = {}
-
-    sync_time = bool(data.get("sync_time_on_connect", False))
-
-    try:
-        poll_interval = int(data.get("poll_interval", 5))
+        return int(data.get(key, default))
     except (TypeError, ValueError):
-        poll_interval = 5
+        return default
 
-    return sync_time, max(2, min(60, poll_interval))
+def read_options():
+    try:
+        data = json.loads(OPTIONS_PATH.read_text())
+    except Exception:
+        data = {}
+    return {
+        "sync_time_on_connect": bool(data.get("sync_time_on_connect", False)),
+        "poll_interval": max(2, min(60, _int(data, "poll_interval", 5))),
+        "live_test_token": max(0, _int(data, "live_test_token", 0)),
+        "live_test_channel": max(1, min(5, _int(data, "live_test_channel", 1))),
+        "live_test_level": max(0, min(20, _int(data, "live_test_level", 10))),
+        "live_test_seconds": max(1, min(5, _int(data, "live_test_seconds", 3))),
+    }
 
+def read_state():
+    try:
+        return json.loads(STATE_PATH.read_text())
+    except Exception:
+        return {}
 
-def find_controller():
-    return usb.core.find(idVendor=VENDOR_ID, idProduct=PRODUCT_ID)
+def write_state(state):
+    STATE_PATH.write_text(json.dumps(state, indent=2, sort_keys=True))
 
-
-def build_packet(command: int, data: bytes = b"") -> bytes:
-    """Create one 64-byte TC420 protocol packet."""
-    if len(data) > 56:
-        raise ValueError("TC420 payload is too large")
-
+def build_packet(command, data=b""):
     packet = bytearray(PACKET_SIZE)
     packet[0:2] = b"\x55\xaa"
-    packet[2] = command & 0xFF
+    packet[2] = command
     struct.pack_into("!H", packet, 3, len(data))
-    packet[5 : 5 + len(data)] = data
-
-    # TC420 checksum is the additive checksum over bytes 0..60.
-    packet[61] = sum(packet[:61]) & 0xFF
-    packet[62] = 0x0D
-    packet[63] = 0x0A
+    packet[5:5+len(data)] = data
+    packet[61] = sum(packet[:61]) & 0xff
+    packet[62:64] = b"\x0d\x0a"
     return bytes(packet)
 
-
-def build_time_sync_packet(now: datetime | None = None) -> bytes:
+def time_packet(now=None):
     now = now or datetime.now()
-    payload = struct.pack(
-        "!HBBBBB",
-        now.year,
-        now.month,
-        now.day,
-        now.hour,
-        now.minute,
-        now.second,
-    )
-    return build_packet(TIME_SYNC_COMMAND, payload)
+    return build_packet(CMD_TIME_SYNC, struct.pack("!HBBBBB",
+        now.year, now.month, now.day, now.hour, now.minute, now.second))
 
+def play_init_packet(name="RCTEST"):
+    payload = name.encode("ascii", errors="replace")[:8] + struct.pack("!H", 0x007f)
+    return build_packet(CMD_PLAY_INIT, payload)
 
-def _endpoint_description(endpoint) -> str:
-    address = int(endpoint.bEndpointAddress)
-    direction = (
-        "IN"
-        if usb.util.endpoint_direction(address) == usb.util.ENDPOINT_IN
-        else "OUT"
-    )
-    return f"0x{address:02x} ({direction})"
+def play_channels_packet(values):
+    vals = [max(0, min(100, int(v))) for v in values]
+    return build_packet(CMD_PLAY_SET_CHANNELS, bytes([0xf5, *vals, 0x00]))
 
-
-def open_tc420_interface(device):
-    """Open the TC420 exactly using interface 0 and its two fixed endpoints.
-
-    The known TC420 implementation uses interface (0, 0), endpoint index 0
-    for input and endpoint index 1 for output. We follow that layout here
-    instead of claiming and rediscovering endpoints ourselves.
-    """
-    detached_kernel_driver = False
-
+def open_dev(dev):
+    detached = False
     try:
-        if device.is_kernel_driver_active(INTERFACE):
-            device.detach_kernel_driver(INTERFACE)
-            detached_kernel_driver = True
-            log("INFO", "Detached kernel HID driver from interface 0.")
-    except (NotImplementedError, usb.core.USBError) as err:
-        log("WARNING", f"Could not query/detach kernel driver: {err}")
+        if dev.is_kernel_driver_active(INTERFACE):
+            dev.detach_kernel_driver(INTERFACE)
+            detached = True
+    except Exception:
+        pass
+    intf = dev[0][(0, 0)]
+    return intf[0], intf[1], detached
 
-    configuration = device[0]
-    interface = configuration[(INTERFACE, 0)]
-
-    if len(interface) < 2:
-        raise RuntimeError(
-            f"TC420 interface exposes only {len(interface)} endpoint(s), expected 2"
-        )
-
-    in_ep = interface[0]
-    out_ep = interface[1]
-
-    in_direction = usb.util.endpoint_direction(in_ep.bEndpointAddress)
-    out_direction = usb.util.endpoint_direction(out_ep.bEndpointAddress)
-
-    log(
-        "INFO",
-        "TC420 endpoints: "
-        f"intf[0]={_endpoint_description(in_ep)}, "
-        f"intf[1]={_endpoint_description(out_ep)}",
-    )
-
-    if in_direction != usb.util.ENDPOINT_IN:
-        raise RuntimeError(
-            "Unexpected TC420 endpoint layout: interface endpoint 0 is not IN"
-        )
-    if out_direction != usb.util.ENDPOINT_OUT:
-        raise RuntimeError(
-            "Unexpected TC420 endpoint layout: interface endpoint 1 is not OUT"
-        )
-
-    return in_ep, out_ep, detached_kernel_driver
-
-
-def close_tc420_interface(device, detached_kernel_driver: bool) -> None:
-    """Release PyUSB resources and restore the HID kernel driver if possible."""
-    usb.util.dispose_resources(device)
-
-    if detached_kernel_driver:
+def close_dev(dev, detached):
+    usb.util.dispose_resources(dev)
+    if detached:
         try:
-            device.attach_kernel_driver(INTERFACE)
-            log("INFO", "Reattached kernel HID driver to interface 0.")
-        except (NotImplementedError, usb.core.USBError) as err:
-            log("WARNING", f"Could not reattach kernel HID driver: {err}")
+            dev.attach_kernel_driver(INTERFACE)
+        except Exception:
+            pass
 
+def send_ok(inp, out, packet, label):
+    written = out.write(packet, timeout=USB_TIMEOUT_MS)
+    if written != 64:
+        raise RuntimeError(f"{label}: wrote {written}/64 bytes")
+    response = bytes(inp.read(64, timeout=USB_TIMEOUT_MS))
+    if len(response) < 6:
+        raise RuntimeError(f"{label}: short response")
+    data_len = int.from_bytes(response[3:5], "big")
+    status = response[5] if data_len >= 1 else None
+    if data_len != 1 or status != 0:
+        raise RuntimeError(f"{label}: no ACK (len={data_len}, status={status})")
 
-def synchronize_clock(device) -> None:
-    """Synchronize the TC420 clock without touching channels or programs."""
-    detached_kernel_driver = False
-
+def sync_clock(dev):
+    detached = False
     try:
-        in_ep, out_ep, detached_kernel_driver = open_tc420_interface(device)
-
+        inp, out, detached = open_dev(dev)
         now = datetime.now()
-        packet = build_time_sync_packet(now)
-
-        log(
-            "INFO",
-            "Sending TC420 clock-sync command "
-            f"for {now.strftime('%Y-%m-%d %H:%M:%S')}...",
-        )
-
-        written = out_ep.write(packet, timeout=USB_TIMEOUT_MS)
-        log("INFO", f"Clock-sync packet written: {written}/{PACKET_SIZE} bytes.")
-
-        response = bytes(in_ep.read(PACKET_SIZE, timeout=USB_TIMEOUT_MS))
-        log("INFO", f"TC420 response received: {len(response)} bytes.")
-
-        if len(response) < 6:
-            raise RuntimeError(
-                f"TC420 returned a short response ({len(response)} bytes)"
-            )
-
-        data_len = int.from_bytes(response[3:5], byteorder="big")
-        status = response[5] if data_len >= 1 else None
-
-        if data_len != 1 or status != 0x00:
-            raise RuntimeError(
-                "TC420 did not acknowledge clock synchronization "
-                f"(data_len={data_len}, status={status!r})"
-            )
-
-        log(
-            "INFO",
-            "TC420 clock synchronization successful: "
-            f"{now.strftime('%Y-%m-%d %H:%M:%S')}",
-        )
-
+        send_ok(inp, out, time_packet(now), "Clock sync")
+        log("INFO", f"TC420 clock synchronization successful: {now:%Y-%m-%d %H:%M:%S}")
     finally:
-        close_tc420_interface(device, detached_kernel_driver)
+        close_dev(dev, detached)
 
+def run_live_test(dev, channel, level, seconds):
+    detached = False
+    values = [0, 0, 0, 0, 0]
+    values[channel-1] = level
+    try:
+        inp, out, detached = open_dev(dev)
+        log("WARNING", f"Live test: CH{channel}={level}%, others=0%, {seconds}s")
+        send_ok(inp, out, play_init_packet(), "Play init")
+        started = time.monotonic()
+        sends = 0
+        while _running and time.monotonic() - started < seconds:
+            send_ok(inp, out, play_channels_packet(values), "Play channels")
+            sends += 1
+            time.sleep(0.4)
+        log("INFO", f"Live test finished after {sends} updates. Fast-play keepalive stopped.")
+        log("INFO", "Stored TC420 programs were not modified.")
+    finally:
+        close_dev(dev, detached)
 
-def describe_device(device) -> str:
-    bus = getattr(device, "bus", None)
-    address = getattr(device, "address", None)
-
-    location = ""
-    if bus is not None and address is not None:
-        location = f", bus={bus}, address={address}"
-
-    return f"VID:PID={device.idVendor:04x}:{device.idProduct:04x}{location}"
-
-
-def main() -> None:
-    sync_time_on_connect, poll_interval = read_options()
-
+def main():
+    opts = read_options()
+    state = read_state()
     log("INFO", f"Reef Control TC420 USB v{APP_VERSION}")
-    log(
-        "INFO",
-        f"Watching for TC420 / SIMU-LUX {VENDOR_ID:04x}:{PRODUCT_ID:04x}",
-    )
-    log("INFO", f"Poll interval: {poll_interval} s")
-    log(
-        "INFO",
-        "Clock sync on connect: "
-        + ("enabled" if sync_time_on_connect else "disabled"),
-    )
-    log(
-        "INFO",
-        "Safety mode active: channel levels and stored programs are never changed.",
-    )
+    log("INFO", "Safety caps: max 20%, max 5 seconds. Stored programs are untouched.")
 
-    connected = False
-    sync_attempted = False
+    dev = usb.core.find(idVendor=VENDOR_ID, idProduct=PRODUCT_ID)
+    if dev is None:
+        log("ERROR", "TC420 not found.")
+        return
+
+    log("INFO", f"TC420 detected: VID:PID={dev.idVendor:04x}:{dev.idProduct:04x}, bus={getattr(dev,'bus',None)}, address={getattr(dev,'address',None)}")
+
+    if opts["sync_time_on_connect"]:
+        sync_clock(dev)
+
+    token = opts["live_test_token"]
+    last = int(state.get("last_live_test_token", 0) or 0)
+
+    if token <= 0:
+        log("INFO", "Live test not armed. Set live_test_token to a new positive number.")
+    elif token == last:
+        log("INFO", f"Live test token {token} already used. Skipping.")
+    else:
+        state["last_live_test_token"] = token
+        write_state(state)
+        run_live_test(dev, opts["live_test_channel"], opts["live_test_level"], opts["live_test_seconds"])
 
     while _running:
-        try:
-            device = find_controller()
-        except usb.core.NoBackendError:
-            log("ERROR", "No libusb backend is available.")
-            time.sleep(poll_interval)
-            continue
-        except usb.core.USBError as err:
-            log("ERROR", f"USB discovery failed: {err}")
-            time.sleep(poll_interval)
-            continue
-
-        if device is not None and not connected:
-            connected = True
-            sync_attempted = False
-            log("INFO", "TC420 detected: " + describe_device(device))
-
-        elif device is None and connected:
-            connected = False
-            sync_attempted = False
-            log("WARNING", "TC420 disconnected.")
-
-        if device is not None and sync_time_on_connect and not sync_attempted:
-            sync_attempted = True
-            try:
-                synchronize_clock(device)
-            except usb.core.USBError as err:
-                log(
-                    "ERROR",
-                    "TC420 clock synchronization failed with USB error: "
-                    f"{err}",
-                )
-            except Exception as err:
-                log("ERROR", f"TC420 clock synchronization failed: {err}")
-
-        time.sleep(poll_interval)
-
-    log("INFO", "Reef Control TC420 USB service stopped.")
-
+        time.sleep(opts["poll_interval"])
 
 if __name__ == "__main__":
-    signal.signal(signal.SIGTERM, _handle_stop)
-    signal.signal(signal.SIGINT, _handle_stop)
+    signal.signal(signal.SIGTERM, _stop)
+    signal.signal(signal.SIGINT, _stop)
     main()
