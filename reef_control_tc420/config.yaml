@@ -1,7 +1,7 @@
 name: Reef Control TC420 USB
-version: "0.1.1"
+version: "0.2.0"
 slug: reef_control_tc420
-description: Safe USB diagnostic bridge for TC420 / SIMU-LUX controllers
+description: USB bridge and guarded live-channel test for TC420 / SIMU-LUX controllers
 url: https://github.com/shdtfy/ha-reef-control
 arch:
   - aarch64
@@ -13,6 +13,14 @@ usb: true
 options:
   sync_time_on_connect: false
   poll_interval: 5
+  live_test_token: 0
+  live_test_channel: 1
+  live_test_level: 10
+  live_test_seconds: 3
 schema:
   sync_time_on_connect: bool
   poll_interval: int
+  live_test_token: int
+  live_test_channel: int
+  live_test_level: int
+  live_test_seconds: int
