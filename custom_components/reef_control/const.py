@@ -1,7 +1,7 @@
 """Constants for Reef Control."""
 
 DOMAIN = "reef_control"
-VERSION = "0.8.0"
+VERSION = "0.9.0"
 
 DEFAULT_AQUARIUM_NAME = "My Reef"
 
@@ -14,6 +14,9 @@ CONF_REEF_METHOD = "reef_method"
 CONF_TEMPERATURE_ENTITY = "temperature_entity"
 CONF_PH_ENTITY = "ph_entity"
 CONF_SALINITY_ENTITY = "salinity_entity"
+CONF_CONDUCTIVITY_ENTITY = "conductivity_entity"
+CONF_REDOX_ENTITY = "redox_entity"
+CONF_SALINITY_SOURCE = "salinity_source"
 CONF_WATER_LEVEL_ENTITY = "water_level_entity"
 
 CONF_REEF_ICP_ENTRY = "reef_icp_entry"
@@ -31,6 +34,10 @@ CONF_SALINITY_MIN = "salinity_min"
 CONF_SALINITY_MAX = "salinity_max"
 CONF_SALINITY_CRITICAL_MIN = "salinity_critical_min"
 CONF_SALINITY_CRITICAL_MAX = "salinity_critical_max"
+CONF_REDOX_MIN = "redox_min"
+CONF_REDOX_MAX = "redox_max"
+CONF_REDOX_CRITICAL_MIN = "redox_critical_min"
+CONF_REDOX_CRITICAL_MAX = "redox_critical_max"
 
 DEFAULT_TEMPERATURE_MIN = 24.0
 DEFAULT_TEMPERATURE_MAX = 28.0
@@ -44,6 +51,11 @@ DEFAULT_SALINITY_MIN = 33.0
 DEFAULT_SALINITY_MAX = 36.0
 DEFAULT_SALINITY_CRITICAL_MIN = 30.0
 DEFAULT_SALINITY_CRITICAL_MAX = 39.0
+DEFAULT_REDOX_MIN = 250.0
+DEFAULT_REDOX_MAX = 450.0
+DEFAULT_REDOX_CRITICAL_MIN = 150.0
+DEFAULT_REDOX_CRITICAL_MAX = 500.0
+DEFAULT_SALINITY_SOURCE = "auto"
 
 CONF_SKIMMER_ENTITY = "skimmer_entity"
 CONF_RETURN_PUMP_ENTITY = "return_pump_entity"

@@ -72,13 +72,19 @@
           "temperature_entity": "Temperature",
           "ph_entity": "pH",
           "salinity_entity": "Salinity",
-          "water_level_entity": "Water level"
+          "water_level_entity": "Water level",
+          "conductivity_entity": "Conductivity",
+          "redox_entity": "Redox / ORP",
+          "salinity_source": "Salinity source"
         },
         "data_description": {
           "temperature_entity": "Sensor providing the current aquarium water temperature.",
           "ph_entity": "Sensor providing the current pH value.",
           "salinity_entity": "Sensor providing the current salinity.",
-          "water_level_entity": "Binary sensor or input boolean used to detect a low water level."
+          "water_level_entity": "Binary sensor or input boolean used to detect a low water level.",
+          "conductivity_entity": "Electrical conductivity sensor. Reef Control normalizes µS/cm and mS/cm and can calculate salinity from conductivity and temperature.",
+          "redox_entity": "Sensor providing oxidation-reduction potential (ORP) in mV.",
+          "salinity_source": "Auto uses a direct salinity sensor when configured, otherwise conductivity + temperature. You can also force either source."
         }
       },
       "limits": {
@@ -87,7 +93,8 @@
         "menu_options": {
           "temperature_limits": "Temperature",
           "ph_limits": "pH",
-          "salinity_limits": "Salinity"
+          "salinity_limits": "Salinity",
+          "redox_limits": "Redox"
         }
       },
       "temperature_limits": {
@@ -276,6 +283,22 @@
           "uvc_mode": "Continuous keeps UV-C on, Schedule runs it only in the selected window, and Off keeps it switched off.",
           "uvc_start_time": "Time at which UV-C should start in schedule mode.",
           "uvc_end_time": "Time at which UV-C should stop in schedule mode. Overnight schedules are supported."
+        }
+      },
+      "redox_limits": {
+        "title": "Redox limits",
+        "description": "Define the normal range and critical limits for oxidation-reduction potential.",
+        "data": {
+          "redox_min": "Normal minimum",
+          "redox_max": "Normal maximum",
+          "redox_critical_min": "Critical minimum",
+          "redox_critical_max": "Critical maximum"
+        },
+        "data_description": {
+          "redox_min": "Below this value ORP is outside the desired normal range.",
+          "redox_max": "Above this value ORP is outside the desired normal range.",
+          "redox_critical_min": "Below this value Reef Control rates ORP as critical.",
+          "redox_critical_max": "Above this value Reef Control rates ORP as critical."
         }
       }
     },

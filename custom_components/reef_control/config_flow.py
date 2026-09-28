@@ -51,8 +51,15 @@ class ReefControlOptionsFlow(config_entries.OptionsFlow):
     async def async_step_water_values(self,user_input=None)->FlowResult:
         if user_input is not None:return await self._save(user_input)
         fields={}
-        for key in (CONF_TEMPERATURE_ENTITY,CONF_PH_ENTITY,CONF_SALINITY_ENTITY):
+        for key in (CONF_TEMPERATURE_ENTITY,CONF_PH_ENTITY,CONF_SALINITY_ENTITY,CONF_CONDUCTIVITY_ENTITY,CONF_REDOX_ENTITY):
             fields[vol.Optional(key,description=self._suggested(key))]=selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor"))
+        fields[vol.Optional(CONF_SALINITY_SOURCE,default=self._options.get(CONF_SALINITY_SOURCE,DEFAULT_SALINITY_SOURCE))]=selector.SelectSelector(
+            selector.SelectSelectorConfig(options=[
+                selector.SelectOptionDict(value="auto",label="Automatisch"),
+                selector.SelectOptionDict(value="direct",label="Direkter Salinitätssensor"),
+                selector.SelectOptionDict(value="calculated",label="Aus Leitfähigkeit + Temperatur berechnen"),
+            ],mode=selector.SelectSelectorMode.DROPDOWN)
+        )
         fields[vol.Optional(CONF_WATER_LEVEL_ENTITY,description=self._suggested(CONF_WATER_LEVEL_ENTITY))]=selector.EntitySelector(selector.EntitySelectorConfig(domain=["binary_sensor","input_boolean"]))
         return self.async_show_form(step_id="water_values",data_schema=vol.Schema(fields))
     async def async_step_temperature_control(self,user_input=None)->FlowResult:
@@ -127,7 +134,7 @@ class ReefControlOptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:return await self._save({},remove_keys=(CONF_REEF_ICP_ENTRY,))
         return self.async_show_form(step_id="reef_icp_unavailable",data_schema=vol.Schema({}))
     async def async_step_limits(self,user_input=None)->FlowResult:
-        return self.async_show_menu(step_id="limits",menu_options=["temperature_limits","ph_limits","salinity_limits"])
+        return self.async_show_menu(step_id="limits",menu_options=["temperature_limits","ph_limits","salinity_limits","redox_limits"])
     async def async_step_temperature_limits(self,user_input=None)->FlowResult:
         definitions=[(CONF_TEMPERATURE_MIN,DEFAULT_TEMPERATURE_MIN,0,50,0.1,"°C"),(CONF_TEMPERATURE_MAX,DEFAULT_TEMPERATURE_MAX,0,50,0.1,"°C"),(CONF_TEMPERATURE_CRITICAL_MIN,DEFAULT_TEMPERATURE_CRITICAL_MIN,0,50,0.1,"°C"),(CONF_TEMPERATURE_CRITICAL_MAX,DEFAULT_TEMPERATURE_CRITICAL_MAX,0,50,0.1,"°C")]
         return await self._limits_form("temperature_limits",user_input,definitions,(CONF_TEMPERATURE_CRITICAL_MIN,CONF_TEMPERATURE_MIN,CONF_TEMPERATURE_MAX,CONF_TEMPERATURE_CRITICAL_MAX),(DEFAULT_TEMPERATURE_CRITICAL_MIN,DEFAULT_TEMPERATURE_MIN,DEFAULT_TEMPERATURE_MAX,DEFAULT_TEMPERATURE_CRITICAL_MAX))
@@ -137,6 +144,9 @@ class ReefControlOptionsFlow(config_entries.OptionsFlow):
     async def async_step_salinity_limits(self,user_input=None)->FlowResult:
         definitions=[(CONF_SALINITY_MIN,DEFAULT_SALINITY_MIN,0,100,0.1,"ppt"),(CONF_SALINITY_MAX,DEFAULT_SALINITY_MAX,0,100,0.1,"ppt"),(CONF_SALINITY_CRITICAL_MIN,DEFAULT_SALINITY_CRITICAL_MIN,0,100,0.1,"ppt"),(CONF_SALINITY_CRITICAL_MAX,DEFAULT_SALINITY_CRITICAL_MAX,0,100,0.1,"ppt")]
         return await self._limits_form("salinity_limits",user_input,definitions,(CONF_SALINITY_CRITICAL_MIN,CONF_SALINITY_MIN,CONF_SALINITY_MAX,CONF_SALINITY_CRITICAL_MAX),(DEFAULT_SALINITY_CRITICAL_MIN,DEFAULT_SALINITY_MIN,DEFAULT_SALINITY_MAX,DEFAULT_SALINITY_CRITICAL_MAX))
+    async def async_step_redox_limits(self,user_input=None)->FlowResult:
+        definitions=[(CONF_REDOX_MIN,DEFAULT_REDOX_MIN,-1000,1000,1,"mV"),(CONF_REDOX_MAX,DEFAULT_REDOX_MAX,-1000,1000,1,"mV"),(CONF_REDOX_CRITICAL_MIN,DEFAULT_REDOX_CRITICAL_MIN,-1000,1000,1,"mV"),(CONF_REDOX_CRITICAL_MAX,DEFAULT_REDOX_CRITICAL_MAX,-1000,1000,1,"mV")]
+        return await self._limits_form("redox_limits",user_input,definitions,(CONF_REDOX_CRITICAL_MIN,CONF_REDOX_MIN,CONF_REDOX_MAX,CONF_REDOX_CRITICAL_MAX),(DEFAULT_REDOX_CRITICAL_MIN,DEFAULT_REDOX_MIN,DEFAULT_REDOX_MAX,DEFAULT_REDOX_CRITICAL_MAX))
     async def _limits_form(self,step_id,user_input,definitions,keys,defaults):
         errors={}
         if user_input is not None:

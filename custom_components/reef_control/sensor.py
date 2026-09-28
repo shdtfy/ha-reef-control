@@ -20,6 +20,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
         ReefControlParameterStatusSensor(hass,entry,"temperature"),
         ReefControlParameterStatusSensor(hass,entry,"ph"),
         ReefControlParameterStatusSensor(hass,entry,"salinity"),
+        ReefControlParameterStatusSensor(hass,entry,"redox"),
+        ReefControlConductivitySensor(hass,entry),
         ReefControlIcpConnectionSensor(hass,entry),
         ReefControlIcpSensor(hass,entry),
         ReefControlWaterValuesSensor(hass,entry),
@@ -92,23 +94,118 @@ PARAMS={
  "temperature":(CONF_TEMPERATURE_ENTITY,"Temperatur","mdi:thermometer",CONF_TEMPERATURE_MIN,CONF_TEMPERATURE_MAX,CONF_TEMPERATURE_CRITICAL_MIN,CONF_TEMPERATURE_CRITICAL_MAX,DEFAULT_TEMPERATURE_MIN,DEFAULT_TEMPERATURE_MAX,DEFAULT_TEMPERATURE_CRITICAL_MIN,DEFAULT_TEMPERATURE_CRITICAL_MAX),
  "ph":(CONF_PH_ENTITY,"pH","mdi:ph",CONF_PH_MIN,CONF_PH_MAX,CONF_PH_CRITICAL_MIN,CONF_PH_CRITICAL_MAX,DEFAULT_PH_MIN,DEFAULT_PH_MAX,DEFAULT_PH_CRITICAL_MIN,DEFAULT_PH_CRITICAL_MAX),
  "salinity":(CONF_SALINITY_ENTITY,"Salinität","mdi:waves",CONF_SALINITY_MIN,CONF_SALINITY_MAX,CONF_SALINITY_CRITICAL_MIN,CONF_SALINITY_CRITICAL_MAX,DEFAULT_SALINITY_MIN,DEFAULT_SALINITY_MAX,DEFAULT_SALINITY_CRITICAL_MIN,DEFAULT_SALINITY_CRITICAL_MAX),
+ "redox":(CONF_REDOX_ENTITY,"Redox","mdi:flash-outline",CONF_REDOX_MIN,CONF_REDOX_MAX,CONF_REDOX_CRITICAL_MIN,CONF_REDOX_CRITICAL_MAX,DEFAULT_REDOX_MIN,DEFAULT_REDOX_MAX,DEFAULT_REDOX_CRITICAL_MIN,DEFAULT_REDOX_CRITICAL_MAX),
 }
+
+
+def _state_number(hass, entity_id):
+    if not entity_id:
+        return None, None, None
+    state = hass.states.get(entity_id)
+    if state is None or state.state in (STATE_UNKNOWN, STATE_UNAVAILABLE):
+        return None, None, state
+    try:
+        return float(str(state.state).replace(",", ".")), state.attributes.get("unit_of_measurement"), state
+    except (TypeError, ValueError):
+        return None, state.attributes.get("unit_of_measurement"), state
+
+def _conductivity_ms_cm(value, unit):
+    """Normalize conductivity to mS/cm."""
+    if value is None:
+        return None
+    normalized = str(unit or "").replace("µ", "u").replace("μ", "u").replace(" ", "").lower()
+    if normalized in ("us/cm", "uscm", "µs/cm", "μs/cm"):
+        return value / 1000.0
+    if normalized in ("s/cm", "scm"):
+        return value * 1000.0
+    # mS/cm is the expected/default unit for marine conductivity.
+    return value
+
+def _pss78_salinity(conductivity_ms_cm, temperature_c):
+    """Practical Salinity (PSS-78) from conductivity at atmospheric pressure."""
+    if conductivity_ms_cm is None or temperature_c is None:
+        return None
+    if conductivity_ms_cm <= 0 or not (-2.0 <= temperature_c <= 40.0):
+        return None
+
+    # UNESCO 1983 / PSS-78. Conductivity ratio uses C(35,15,0)=42.914 mS/cm.
+    r = conductivity_ms_cm / 42.914
+    t = temperature_c
+    rt = 0.6766097 + 0.0200564*t + 0.0001104259*t*t - 6.9698e-7*t**3 + 1.0031e-9*t**4
+    if rt <= 0:
+        return None
+    rt_ratio = r / rt
+    if rt_ratio <= 0:
+        return None
+    x = rt_ratio ** 0.5
+    a = (0.0080, -0.1692, 25.3851, 14.0941, -7.0261, 2.7081)
+    b = (0.0005, -0.0056, -0.0066, -0.0375, 0.0636, -0.0144)
+    base = sum(a[i] * x**i for i in range(6))
+    delta = ((t - 15.0) / (1.0 + 0.0162 * (t - 15.0))) * sum(b[i] * x**i for i in range(6))
+    salinity = base + delta
+    if not (0.0 <= salinity <= 50.0):
+        return None
+    return salinity
+
+def _calculated_salinity(hass, entry):
+    conductivity_id = entry.options.get(CONF_CONDUCTIVITY_ENTITY)
+    temperature_id = entry.options.get(CONF_TEMPERATURE_ENTITY)
+    conductivity, conductivity_unit, _ = _state_number(hass, conductivity_id)
+    temperature, temperature_unit, _ = _state_number(hass, temperature_id)
+    conductivity_ms = _conductivity_ms_cm(conductivity, conductivity_unit)
+    salinity = _pss78_salinity(conductivity_ms, temperature)
+    if salinity is None:
+        return None, {
+            "source": "calculated",
+            "calculation": "PSS-78",
+            "conductivity_entity": conductivity_id,
+            "temperature_entity": temperature_id,
+        }
+    return salinity, {
+        "source": "calculated",
+        "calculation": "PSS-78",
+        "conductivity": round(conductivity_ms, 3),
+        "conductivity_unit": "mS/cm",
+        "temperature": round(temperature, 2),
+        "temperature_unit": temperature_unit or "°C",
+        "conductivity_entity": conductivity_id,
+        "temperature_entity": temperature_id,
+    }
 
 def evaluate(hass,entry,param):
     ent,name,icon,min_k,max_k,cmin_k,cmax_k,dmin,dmax,dcmin,dcmax=PARAMS[param]
     entity_id=entry.options.get(ent)
-    if not entity_id:return ("Nicht konfiguriert",None,{})
-    st=hass.states.get(entity_id)
-    if st is None or st.state in (STATE_UNKNOWN,STATE_UNAVAILABLE):return ("Nicht verfügbar",None,{"source_entity":entity_id})
-    try:value=float(st.state.replace(",","."))
-    except (ValueError,TypeError):return ("Nicht verfügbar",None,{"source_entity":entity_id,"raw_state":st.state})
+    attrs={}
+    if param=="salinity":
+        source=entry.options.get(CONF_SALINITY_SOURCE,DEFAULT_SALINITY_SOURCE)
+        use_calculated = source=="calculated" or (source=="auto" and not entity_id)
+        if use_calculated:
+            value,attrs=_calculated_salinity(hass,entry)
+            if value is None:return ("Nicht verfügbar",None,attrs)
+            entity_id=None
+        else:
+            if not entity_id:return ("Nicht konfiguriert",None,{})
+            st=hass.states.get(entity_id)
+            if st is None or st.state in (STATE_UNKNOWN,STATE_UNAVAILABLE):return ("Nicht verfügbar",None,{"source_entity":entity_id,"source":"direct"})
+            try:value=float(st.state.replace(",","."))
+            except (ValueError,TypeError):return ("Nicht verfügbar",None,{"source_entity":entity_id,"raw_state":st.state,"source":"direct"})
+            attrs={"source_entity":entity_id,"source":"direct","unit":st.attributes.get("unit_of_measurement")}
+    else:
+        if not entity_id:return ("Nicht konfiguriert",None,{})
+        st=hass.states.get(entity_id)
+        if st is None or st.state in (STATE_UNKNOWN,STATE_UNAVAILABLE):return ("Nicht verfügbar",None,{"source_entity":entity_id})
+        try:value=float(st.state.replace(",","."))
+        except (ValueError,TypeError):return ("Nicht verfügbar",None,{"source_entity":entity_id,"raw_state":st.state})
+        attrs={"source_entity":entity_id,"unit":st.attributes.get("unit_of_measurement")}
     mn=float(entry.options.get(min_k,dmin)); mx=float(entry.options.get(max_k,dmax)); cmn=float(entry.options.get(cmin_k,dcmin)); cmx=float(entry.options.get(cmax_k,dcmax))
     if value<cmn: status="Kritisch niedrig"
     elif value>cmx: status="Kritisch hoch"
     elif value<mn: status="Zu niedrig"
     elif value>mx: status="Zu hoch"
     else: status="Normal"
-    return status,value,{"source_entity":entity_id,"value":value,"unit":st.attributes.get("unit_of_measurement"),"minimum":mn,"maximum":mx,"critical_minimum":cmn,"critical_maximum":cmx}
+    attrs.update({"value":value,"minimum":mn,"maximum":mx,"critical_minimum":cmn,"critical_maximum":cmx})
+    if param=="salinity" and attrs.get("source")=="calculated": attrs["unit"]="PSU"
+    return status,value,attrs
 
 class ReefControlParameterStatusSensor(ReefControlRuntimeSensor):
     def __init__(self,hass,entry,param):
@@ -119,7 +216,12 @@ class ReefControlParameterStatusSensor(ReefControlRuntimeSensor):
 
     @property
     def native_value(self):
-        return evaluate(self.hass,self._entry,self.param)[1]
+        value=evaluate(self.hass,self._entry,self.param)[1]
+        if value is None:return None
+        if self.param=="temperature":return round(value,1)
+        if self.param=="salinity":return round(value,2)
+        if self.param=="redox":return round(value,0)
+        return value
 
     @property
     def native_unit_of_measurement(self):
@@ -145,6 +247,33 @@ class ReefControlParameterStatusSensor(ReefControlRuntimeSensor):
         if status in ("Zu niedrig","Zu hoch"): return "mdi:alert"
         if status=="Normal": return PARAMS[self.param][2]
         return "mdi:help-circle-outline"
+
+
+class ReefControlConductivitySensor(ReefControlRuntimeSensor):
+    _attr_name="Leitfähigkeit"
+    _attr_icon="mdi:lightning-bolt-outline"
+    def __init__(self,hass,entry):
+        super().__init__(hass,entry)
+        self._attr_unique_id=f"{entry.entry_id}_conductivity"
+    @property
+    def native_value(self):
+        value,unit,_=_state_number(self.hass,self._entry.options.get(CONF_CONDUCTIVITY_ENTITY))
+        value=_conductivity_ms_cm(value,unit)
+        return round(value,2) if value is not None else None
+    @property
+    def native_unit_of_measurement(self):
+        return "mS/cm"
+    @property
+    def extra_state_attributes(self):
+        entity_id=self._entry.options.get(CONF_CONDUCTIVITY_ENTITY)
+        value,unit,state=_state_number(self.hass,entity_id)
+        normalized=_conductivity_ms_cm(value,unit)
+        return {
+            "source_entity":entity_id,
+            "source_unit":unit,
+            "normalized_unit":"mS/cm",
+            "valid": normalized is not None and normalized >= 0,
+        }
 
 def _icp_snapshot(hass, entry):
     """Return only the important summary data from the linked Reef ICP aquarium."""
@@ -363,10 +492,10 @@ class ReefControlOverallStatusSensor(ReefControlRuntimeSensor):
     def icon(self):return {"OK":"mdi:check-circle","Warnung":"mdi:alert","Kritisch":"mdi:alert-octagon","Keine Messwerte":"mdi:gauge-empty"}.get(self.native_value,"mdi:gauge")
     @property
     def extra_state_attributes(self):
-        results=self._results();snap=_icp_snapshot(self.hass,self._entry);icp=snap["status"] if snap["connected"] else "Nicht konfiguriert";labels={"temperature":"Temperatur","ph":"pH","salinity":"Salinität"}
+        results=self._results();snap=_icp_snapshot(self.hass,self._entry);icp=snap["status"] if snap["connected"] else "Nicht konfiguriert";labels={"temperature":"Temperatur","ph":"pH","salinity":"Salinität","redox":"Redox"}
         issues=[f"{labels.get(param,param)}: {status}" for param,status in results.items() if status not in ("Normal","Nicht konfiguriert")]
         icp_age=snap.get("analysis_age_days");icp_stale=icp_age is not None and icp_age>90
         if icp not in ("Gut","Nicht konfiguriert","Keine Analyse") and not icp_stale:issues.append(f"ICP: {icp}")
         active_sources=sum(1 for status in results.values() if status!="Nicht konfiguriert")
         if snap["connected"]:active_sources+=1
-        return {"temperature":results["temperature"],"ph":results["ph"],"salinity":results["salinity"],"icp":icp,"icp_connected":snap["connected"],"icp_provider":snap.get("provider"),"icp_analysis_date":snap.get("analysis_date"),"icp_analysis_age_days":snap.get("analysis_age_days"),"icp_stale":icp_stale,"icp_issue_count":snap.get("issue_count",0),"active_status_sources":active_sources,"issue_count":len(issues),"issues":issues}
+        return {"temperature":results["temperature"],"ph":results["ph"],"salinity":results["salinity"],"redox":results["redox"],"icp":icp,"icp_connected":snap["connected"],"icp_provider":snap.get("provider"),"icp_analysis_date":snap.get("analysis_date"),"icp_analysis_age_days":snap.get("analysis_age_days"),"icp_stale":icp_stale,"icp_issue_count":snap.get("issue_count",0),"active_status_sources":active_sources,"issue_count":len(issues),"issues":issues}
