@@ -15,9 +15,9 @@
         "data_description": {
           "aquarium_name": "Name used for this aquarium throughout Reef Control.",
           "volume": "Actual water volume after displacement by rock, sand and equipment.",
-          "tank_type": "Basic aquarium type used to classify the system.",
-          "supply_system": "Method or product system used to supply major and trace elements.",
-          "reef_method": "General method used to operate the reef aquarium."
+          "tank_type": "Classifies the aquarium, for example Mixed Reef, SPS, LPS or soft coral.",
+          "supply_system": "Main supplementation system for major and trace elements, for example Balling Light, ATI Essentials, Oceamo, Triton or a calcium reactor.",
+          "reef_method": "Berlin: classic skimmer/rock-based reefing. Triton: ICP + refugium. DSR: measurement/dosing-focused with reduced water changes. None/Other: flexible operation."
         }
       }
     },
@@ -31,6 +31,8 @@
         "title": "Configure Reef Control",
         "description": "Choose an area to edit. Changes stay in this configuration session until you select Save & close.",
         "menu_options": {
+          "aquarium_profile": "Aquarium & system",
+          "system_modules": "Suggested modules",
           "entities": "Equipment & entities",
           "water_values": "Water values",
           "limits": "Monitoring limits",
@@ -330,10 +332,93 @@
           "uvc_start_time": "Time at which UV-C should start in schedule mode.",
           "uvc_end_time": "Time at which UV-C should stop in schedule mode. Overnight schedules are supported."
         }
+      },
+      "aquarium_profile": {
+        "title": "Aquarium & system",
+        "description": "Edit the existing aquarium profile. This does not create a new aquarium and does not change the internal config-entry ID.",
+        "data": {
+          "aquarium_name": "Aquarium name",
+          "volume": "Net water volume (L)",
+          "tank_type": "Aquarium type",
+          "supply_system": "Supply system",
+          "reef_method": "Reef method"
+        },
+        "data_description": {
+          "aquarium_name": "Visible name used by Reef Control. Renaming does not create a new aquarium.",
+          "volume": "Actual water volume after displacement by rock, sand and equipment.",
+          "tank_type": "Classifies the aquarium, for example Mixed Reef, SPS, LPS or soft coral.",
+          "supply_system": "Main supplementation system. Balling Light, ATI Essentials, Oceamo and Triton can unlock dosing-related module suggestions; Calcium Reactor unlocks the reactor module.",
+          "reef_method": "Berlin: classic skimmer/rock-based reefing. Triton: ICP- and refugium-focused system. DSR: measurement- and dosing-focused system with reduced water changes. None/Other keeps the setup flexible."
+        }
+      },
+      "system_modules": {
+        "title": "Suggested modules",
+        "description": "Reef Control uses the selected reef method and supply system to offer relevant optional modules. Nothing is enabled automatically.",
+        "menu_options": {
+          "refugium_module": "Refugium",
+          "dosing_module": "Dosing & trace elements",
+          "calcium_reactor_module": "Calcium reactor",
+          "reef_icp": "Reef ICP",
+          "back_to_main": "← Back"
+        }
+      },
+      "system_modules_none": {
+        "title": "Suggested modules",
+        "description": "No additional module is currently suggested for this profile. Change the reef method or supply system under Aquarium & system to get matching suggestions."
+      },
+      "refugium_module": {
+        "title": "Refugium module",
+        "description": "Assign refugium equipment and store the intended lighting window. In v0.12.2 these settings prepare the module and dashboard; Reef Control does not yet switch the refugium automatically.",
+        "data": {
+          "refugium_module_enabled": "Enable refugium module",
+          "refugium_light_entities": "Refugium lights",
+          "refugium_pump_entities": "Refugium pumps",
+          "refugium_light_start": "Planned light start",
+          "refugium_light_end": "Planned light end"
+        },
+        "data_description": {
+          "refugium_module_enabled": "Marks the refugium module as configured/used for this aquarium. It does not start automatic control yet.",
+          "refugium_light_entities": "One or more Home Assistant entities used for refugium lighting.",
+          "refugium_pump_entities": "Optional pumps dedicated to the refugium.",
+          "refugium_light_start": "Stored target start time for a future automatic refugium-light controller.",
+          "refugium_light_end": "Stored target end time for a future automatic refugium-light controller. Overnight windows are supported by the stored profile."
+        }
+      },
+      "dosing_module": {
+        "title": "Dosing & trace elements",
+        "description": "Assign dosing-related entities for the selected supply system. v0.12.2 stores and exposes the configuration only; Reef Control does not automatically calculate or execute doses yet.",
+        "data": {
+          "dosing_module_enabled": "Enable dosing module",
+          "dosing_pump_entities": "Main dosing pump entities",
+          "trace_dosing_entities": "Trace-element dosing entities"
+        },
+        "data_description": {
+          "dosing_module_enabled": "Marks dosing as part of this aquarium setup and exposes it in the system profile.",
+          "dosing_pump_entities": "Entities for the main supplementation system, for example Balling Light, ATI Essentials, Oceamo or Triton dosing channels.",
+          "trace_dosing_entities": "Optional entities used for trace-element or single-element dosing."
+        }
+      },
+      "calcium_reactor_module": {
+        "title": "Calcium reactor",
+        "description": "Prepare a calcium-reactor setup with its components, reactor pH sensor and CO₂ valve. Automatic pH/CO₂ regulation is intentionally not active yet in v0.12.2.",
+        "data": {
+          "calcium_reactor_module_enabled": "Enable calcium-reactor module",
+          "calcium_reactor_entities": "Calcium-reactor components",
+          "calcium_reactor_ph_entity": "Reactor pH sensor",
+          "calcium_reactor_co2_entity": "CO₂ solenoid valve"
+        },
+        "data_description": {
+          "calcium_reactor_module_enabled": "Marks the calcium-reactor module as configured for this aquarium.",
+          "calcium_reactor_entities": "Switchable reactor components such as circulation or feed pumps. The selected CO₂ valve is automatically included in this equipment group.",
+          "calcium_reactor_ph_entity": "pH sensor inside the reactor. This is reserved for a future fail-safe CO₂ controller.",
+          "calcium_reactor_co2_entity": "Switch or input boolean used for the CO₂ solenoid. v0.12.2 does not automatically switch it from pH yet."
+        }
       }
     },
     "error": {
-      "invalid_limits": "Check the limits: critical minimum ≤ normal minimum < normal maximum ≤ critical maximum."
+      "invalid_limits": "Check the limits: critical minimum ≤ normal minimum < normal maximum ≤ critical maximum.",
+      "invalid_aquarium_name": "Enter an aquarium name.",
+      "invalid_volume": "Net water volume must be at least 1 litre."
     }
   },
   "entity": {

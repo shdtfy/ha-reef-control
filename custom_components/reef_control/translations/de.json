@@ -15,9 +15,9 @@
         "data_description": {
           "aquarium_name": "Name, unter dem dieses Aquarium in Reef Control angezeigt wird.",
           "volume": "Tatsächliches Wasservolumen nach Abzug der Verdrängung durch Riffaufbau, Bodengrund und Technik.",
-          "tank_type": "Grundlegender Aquariumtyp zur Einordnung des Systems.",
-          "supply_system": "System, mit dem Haupt- und Spurenelemente im Aquarium versorgt werden.",
-          "reef_method": "Grundlegende Methode, nach der das Riffaquarium betrieben wird."
+          "tank_type": "Ordnet das Aquarium grundlegend ein, zum Beispiel Mixed Reef, SPS, LPS oder Weichkorallen.",
+          "supply_system": "Hauptversorgung für Mengen- und Spurenelemente. Zur Auswahl stehen unter anderem Balling Light, ATI Essentials, Oceamo, Triton oder Kalkreaktor.",
+          "reef_method": "Berlin: klassisch mit Abschäumer/Riffgestein. Triton: ICP + Refugium. DSR: mess- und dosierorientiert mit reduzierten Wasserwechseln. Keine/Andere: freie Betriebsweise."
         }
       }
     },
@@ -31,6 +31,8 @@
         "title": "Reef Control konfigurieren",
         "description": "Wähle einen Bereich aus. Änderungen bleiben in dieser Konfigurationssitzung erhalten, bis du „Speichern & schließen“ auswählst.",
         "menu_options": {
+          "aquarium_profile": "Aquarium & System",
+          "system_modules": "Passende Module",
           "entities": "Geräte & Entitäten",
           "water_values": "Wasserwerte",
           "limits": "Grenzwerte",
@@ -330,10 +332,93 @@
           "uvc_start_time": "Uhrzeit, ab der UV-C im Zeitplanbetrieb laufen soll.",
           "uvc_end_time": "Uhrzeit, zu der UV-C im Zeitplanbetrieb ausgeschaltet wird. Zeiträume über Mitternacht werden unterstützt."
         }
+      },
+      "aquarium_profile": {
+        "title": "Aquarium & System",
+        "description": "Bearbeite das bestehende Aquariumprofil. Dabei wird kein neues Aquarium angelegt und die interne Config-Entry-ID bleibt unverändert.",
+        "data": {
+          "aquarium_name": "Aquariumname",
+          "volume": "Netto-Wasservolumen (Liter)",
+          "tank_type": "Aquariumtyp",
+          "supply_system": "Versorgungssystem",
+          "reef_method": "Riffmethode"
+        },
+        "data_description": {
+          "aquarium_name": "Sichtbarer Name in Reef Control. Eine Umbenennung legt kein neues Aquarium an.",
+          "volume": "Tatsächliches Wasservolumen nach Abzug der Verdrängung durch Riffaufbau, Bodengrund und Technik.",
+          "tank_type": "Ordnet das Becken ein, zum Beispiel Mixed Reef, SPS, LPS oder Weichkorallen.",
+          "supply_system": "Hauptversorgung des Aquariums. Balling Light, ATI Essentials, Oceamo und Triton können passende Dosiermodule anbieten; Kalkreaktor blendet das Reaktormodul ein.",
+          "reef_method": "Berlin: klassischer Betrieb mit Abschäumer und Riffgestein. Triton: ICP- und Refugium-orientiert. DSR: stark mess- und dosierorientiert mit reduzierten Wasserwechseln. Keine/Andere lässt das System frei."
+        }
+      },
+      "system_modules": {
+        "title": "Passende Module",
+        "description": "Reef Control nutzt Riffmethode und Versorgungssystem, um passende optionale Module anzubieten. Es wird nichts automatisch aktiviert.",
+        "menu_options": {
+          "refugium_module": "Refugium",
+          "dosing_module": "Dosierung & Spurenelemente",
+          "calcium_reactor_module": "Kalkreaktor",
+          "reef_icp": "Reef ICP",
+          "back_to_main": "← Zurück"
+        }
+      },
+      "system_modules_none": {
+        "title": "Passende Module",
+        "description": "Für dieses Profil wird aktuell kein zusätzliches Modul vorgeschlagen. Unter Aquarium & System kannst du Riffmethode oder Versorgung ändern."
+      },
+      "refugium_module": {
+        "title": "Refugium",
+        "description": "Ordne die Refugium-Technik zu und hinterlege das gewünschte Beleuchtungsfenster. In v0.12.2 werden diese Daten vorbereitet und im Systemprofil angezeigt; eine automatische Refugium-Steuerung erfolgt noch nicht.",
+        "data": {
+          "refugium_module_enabled": "Refugium-Modul aktivieren",
+          "refugium_light_entities": "Refugium-Beleuchtung",
+          "refugium_pump_entities": "Refugium-Pumpen",
+          "refugium_light_start": "Geplanter Lichtbeginn",
+          "refugium_light_end": "Geplantes Lichtende"
+        },
+        "data_description": {
+          "refugium_module_enabled": "Kennzeichnet das Refugium als verwendetes Modul dieses Aquariums. Dadurch wird noch keine automatische Steuerung gestartet.",
+          "refugium_light_entities": "Eine oder mehrere Home-Assistant-Entitäten für die Refugium-Beleuchtung.",
+          "refugium_pump_entities": "Optionale Pumpen, die ausschließlich zum Refugium gehören.",
+          "refugium_light_start": "Gespeicherte Zielzeit für den späteren automatischen Refugium-Lichtregler.",
+          "refugium_light_end": "Gespeicherte Zielzeit für den späteren automatischen Refugium-Lichtregler. Zeitfenster über Mitternacht können vorbereitet werden."
+        }
+      },
+      "dosing_module": {
+        "title": "Dosierung & Spurenelemente",
+        "description": "Ordne Dosier-Entitäten passend zum gewählten Versorgungssystem zu. v0.12.2 speichert und zeigt die Konfiguration; Reef Control berechnet oder startet noch keine Dosierung automatisch.",
+        "data": {
+          "dosing_module_enabled": "Dosier-Modul aktivieren",
+          "dosing_pump_entities": "Haupt-Dosierpumpen / Dosierkanäle",
+          "trace_dosing_entities": "Spurenelement-Dosierung"
+        },
+        "data_description": {
+          "dosing_module_enabled": "Kennzeichnet die Dosierung als Bestandteil dieses Aquariumprofils.",
+          "dosing_pump_entities": "Entitäten für das Hauptversorgungssystem, zum Beispiel Balling-Light-, ATI-, Oceamo- oder Triton-Dosierkanäle.",
+          "trace_dosing_entities": "Optionale Entitäten für Spurenelemente oder einzelne Elementlösungen."
+        }
+      },
+      "calcium_reactor_module": {
+        "title": "Kalkreaktor",
+        "description": "Bereite den Kalkreaktor mit seinen Komponenten, dem Reaktor-pH-Sensor und dem CO₂-Magnetventil vor. Eine automatische pH-/CO₂-Regelung ist in v0.12.2 bewusst noch nicht aktiv.",
+        "data": {
+          "calcium_reactor_module_enabled": "Kalkreaktor-Modul aktivieren",
+          "calcium_reactor_entities": "Kalkreaktor-Komponenten",
+          "calcium_reactor_ph_entity": "pH-Sensor im Reaktor",
+          "calcium_reactor_co2_entity": "CO₂-Magnetventil"
+        },
+        "data_description": {
+          "calcium_reactor_module_enabled": "Kennzeichnet den Kalkreaktor als verwendetes Modul dieses Aquariums.",
+          "calcium_reactor_entities": "Schaltbare Komponenten wie Umwälz- oder Zulaufpumpe. Das ausgewählte CO₂-Magnetventil wird automatisch dieser Technikgruppe hinzugefügt.",
+          "calcium_reactor_ph_entity": "pH-Sensor im Reaktor. Er ist für eine spätere ausfallsichere CO₂-Regelung vorgesehen.",
+          "calcium_reactor_co2_entity": "Schalter oder Input Boolean für das CO₂-Magnetventil. v0.12.2 schaltet es noch nicht automatisch anhand des pH-Werts."
+        }
       }
     },
     "error": {
-      "invalid_limits": "Grenzwerte prüfen: kritisch min. ≤ normal min. < normal max. ≤ kritisch max."
+      "invalid_limits": "Grenzwerte prüfen: kritisch min. ≤ normal min. < normal max. ≤ kritisch max.",
+      "invalid_aquarium_name": "Bitte einen Aquariumname eingeben.",
+      "invalid_volume": "Das Netto-Wasservolumen muss mindestens 1 Liter betragen."
     }
   },
   "entity": {
