@@ -12,12 +12,18 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from .alarm_control import ReefControlAlarmController
-from .const import DOMAIN, PLATFORMS, TC420_CHANNEL_COUNT
+from .const import (
+    CONF_PROFILE_TITLE_SYNC_PENDING,
+    DOMAIN,
+    PLATFORMS,
+    TC420_CHANNEL_COUNT,
+    get_aquarium_name,
+)
 from .equipment_control import ReefControlEquipmentController
 from .safety_control import ReefControlSafetyController
 from .uvc_control import ReefControlUvcController
 
-CARD_VERSION = "0.1.11"
+CARD_VERSION = "0.1.12"
 CARD_URL = "/reef_control/reef-control-card.js"
 CARD_RESOURCE_URL = f"{CARD_URL}?v={CARD_VERSION}"
 CARD_FILE = Path(__file__).parent / "www" / "reef-control-card.js"
@@ -126,7 +132,20 @@ async def _register_card(hass):
 
 
 async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Reload once after the user finishes the multi-page options flow."""
+    """Synchronize the visible aquarium title, then reload exactly once."""
+    if entry.options.get(CONF_PROFILE_TITLE_SYNC_PENDING):
+        options = dict(entry.options)
+        options.pop(CONF_PROFILE_TITLE_SYNC_PENDING, None)
+        changed = hass.config_entries.async_update_entry(
+            entry,
+            title=get_aquarium_name(entry),
+            options=options,
+        )
+        if changed:
+            # The update above schedules this listener again. That second call
+            # has no marker and performs the single reload.
+            return
+
     await hass.config_entries.async_reload(entry.entry_id)
 
 
@@ -147,6 +166,18 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    # Recover a title-sync marker left behind by an interrupted options save.
+    # No update listener is registered yet, so this normalization cannot cause
+    # a reload loop during startup.
+    if entry.options.get(CONF_PROFILE_TITLE_SYNC_PENDING):
+        options = dict(entry.options)
+        options.pop(CONF_PROFILE_TITLE_SYNC_PENDING, None)
+        hass.config_entries.async_update_entry(
+            entry,
+            title=get_aquarium_name(entry),
+            options=options,
+        )
+
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {
         "entry": entry,
         "tc420_channels": {

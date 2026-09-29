@@ -47,7 +47,7 @@ class ReefControlBaseSensor(SensorEntity):
     def device_info(self):
         return DeviceInfo(
             identifiers={(DOMAIN, self._entry.entry_id)},
-            name=self._entry.data[CONF_AQUARIUM_NAME],
+            name=get_aquarium_name(self._entry),
             manufacturer="Reef Control",
             model="Reef Aquarium",
             sw_version=VERSION,
@@ -64,7 +64,7 @@ class ReefControlAquariumSensor(ReefControlBaseSensor):
 
     @property
     def native_value(self):
-        return self._entry.data[CONF_AQUARIUM_NAME]
+        return get_aquarium_name(self._entry)
 
     @property
     def extra_state_attributes(self):
@@ -120,13 +120,116 @@ class ReefControlAquariumSensor(ReefControlBaseSensor):
             key: value for key, value in equipment_entities.items() if value
         }
 
+        volume = get_profile_value(self._entry, CONF_VOLUME, 1.0)
+        tank_type = get_profile_value(
+            self._entry, CONF_TANK_TYPE, DEFAULT_TANK_TYPE
+        )
+        supply_system = get_profile_value(
+            self._entry, CONF_SUPPLY_SYSTEM, DEFAULT_SUPPLY_SYSTEM
+        )
+        reef_method = get_profile_value(
+            self._entry, CONF_REEF_METHOD, DEFAULT_REEF_METHOD
+        )
+
+        recommendations = recommended_modules(
+            reef_method,
+            supply_system,
+            bool(groups["calcium_reactors"])
+            or bool(options.get(CONF_CALCIUM_REACTOR_PH_ENTITY))
+            or bool(options.get(CONF_CALCIUM_REACTOR_CO2_ENTITY)),
+        )
+
+        refugium_lights = get_entity_list(
+            options, CONF_REFUGIUM_LIGHT_ENTITIES
+        )
+        refugium_pumps = get_entity_list(
+            options, CONF_REFUGIUM_PUMP_ENTITIES
+        )
+        dosing_pumps = get_entity_list(
+            options, CONF_DOSING_PUMP_ENTITIES
+        )
+        trace_dosing = get_entity_list(
+            options, CONF_TRACE_DOSING_ENTITIES
+        )
+
+        if refugium_lights:
+            equipment_entities["refugium_lights"] = refugium_lights
+        if refugium_pumps:
+            equipment_entities["refugium_pumps"] = refugium_pumps
+
+        system_modules = {
+            "refugium": {
+                "recommended": "refugium" in recommendations,
+                "enabled": bool(
+                    options.get(
+                        CONF_REFUGIUM_MODULE_ENABLED,
+                        DEFAULT_REFUGIUM_MODULE_ENABLED,
+                    )
+                ),
+                "configured": bool(refugium_lights or refugium_pumps),
+                "light_entities": refugium_lights,
+                "pump_entities": refugium_pumps,
+                "light_start": options.get(
+                    CONF_REFUGIUM_LIGHT_START, DEFAULT_REFUGIUM_LIGHT_START
+                ),
+                "light_end": options.get(
+                    CONF_REFUGIUM_LIGHT_END, DEFAULT_REFUGIUM_LIGHT_END
+                ),
+                "automatic_control": False,
+            },
+            "dosing": {
+                "recommended": "dosing" in recommendations,
+                "enabled": bool(
+                    options.get(
+                        CONF_DOSING_MODULE_ENABLED,
+                        DEFAULT_DOSING_MODULE_ENABLED,
+                    )
+                ),
+                "configured": bool(dosing_pumps or trace_dosing),
+                "dosing_pump_entities": dosing_pumps,
+                "trace_dosing_entities": trace_dosing,
+                "automatic_control": False,
+            },
+            "calcium_reactor": {
+                "recommended": "calcium_reactor" in recommendations,
+                "enabled": bool(
+                    options.get(
+                        CONF_CALCIUM_REACTOR_MODULE_ENABLED,
+                        DEFAULT_CALCIUM_REACTOR_MODULE_ENABLED,
+                    )
+                ),
+                "configured": bool(
+                    groups["calcium_reactors"]
+                    or options.get(CONF_CALCIUM_REACTOR_PH_ENTITY)
+                    or options.get(CONF_CALCIUM_REACTOR_CO2_ENTITY)
+                ),
+                "component_entities": groups["calcium_reactors"],
+                "ph_entity": options.get(CONF_CALCIUM_REACTOR_PH_ENTITY),
+                "co2_entity": options.get(CONF_CALCIUM_REACTOR_CO2_ENTITY),
+                "automatic_co2_control": False,
+            },
+            "reef_icp": {
+                "recommended": "reef_icp" in recommendations,
+                "linked": bool(options.get(CONF_REEF_ICP_ENTRY)),
+            },
+        }
+
         return {
-            "volume_l": self._entry.data[CONF_VOLUME],
-            "tank_type": self._entry.data.get(CONF_TANK_TYPE, "mixed_reef"),
-            "supply_system": self._entry.data.get(CONF_SUPPLY_SYSTEM, "none"),
-            "reef_method": self._entry.data.get(CONF_REEF_METHOD, "none"),
+            "volume_l": volume,
+            "tank_type": tank_type,
+            "supply_system": supply_system,
+            "reef_method": reef_method,
             "reef_control_version": VERSION,
             "equipment_entities": equipment_entities,
+            "system_profile": {
+                "aquarium_name": get_aquarium_name(self._entry),
+                "volume_l": volume,
+                "tank_type": tank_type,
+                "supply_system": supply_system,
+                "reef_method": reef_method,
+            },
+            "recommended_modules": recommendations,
+            "system_modules": system_modules,
         }
 
 

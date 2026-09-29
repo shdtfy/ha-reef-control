@@ -39,7 +39,7 @@ class _Base(BinarySensorEntity):
     def device_info(self):
         return DeviceInfo(
             identifiers={(DOMAIN, self.entry.entry_id)},
-            name=self.entry.data[CONF_AQUARIUM_NAME],
+            name=get_aquarium_name(self.entry),
             manufacturer="Reef Control",
             model="Reef Aquarium",
             sw_version=VERSION,

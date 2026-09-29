@@ -14,6 +14,7 @@ from .const import (
     MANUAL_MEASUREMENTS,
     TC420_CHANNEL_COUNT,
     VERSION,
+    get_aquarium_name,
 )
 
 
@@ -51,7 +52,7 @@ class ReefControlManualMeasurement(NumberEntity, RestoreEntity):
     def device_info(self):
         return DeviceInfo(
             identifiers={(DOMAIN, self._entry.entry_id)},
-            name=self._entry.data[CONF_AQUARIUM_NAME],
+            name=get_aquarium_name(self._entry),
             manufacturer="Reef Control",
             model="Reef Aquarium",
             sw_version=VERSION,
@@ -129,7 +130,7 @@ class ReefControlLightChannel(NumberEntity, RestoreEntity):
     def device_info(self):
         return DeviceInfo(
             identifiers={(DOMAIN, self._entry.entry_id)},
-            name=self._entry.data[CONF_AQUARIUM_NAME],
+            name=get_aquarium_name(self._entry),
             manufacturer="Reef Control",
             model="Reef Aquarium",
             sw_version=VERSION,

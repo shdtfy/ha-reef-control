@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from typing import Any
 
 DOMAIN = "reef_control"
-VERSION = "0.12.1"
+VERSION = "0.12.2"
 
 DEFAULT_AQUARIUM_NAME = "My Reef"
 
@@ -15,6 +15,38 @@ CONF_VOLUME = "volume"
 CONF_TANK_TYPE = "tank_type"
 CONF_SUPPLY_SYSTEM = "supply_system"
 CONF_REEF_METHOD = "reef_method"
+
+DEFAULT_TANK_TYPE = "mixed_reef"
+DEFAULT_SUPPLY_SYSTEM = "none"
+DEFAULT_REEF_METHOD = "none"
+
+CONF_PROFILE_TITLE_SYNC_PENDING = "_profile_title_sync_pending"
+
+PROFILE_OPTION_KEYS = (
+    CONF_AQUARIUM_NAME,
+    CONF_VOLUME,
+    CONF_TANK_TYPE,
+    CONF_SUPPLY_SYSTEM,
+    CONF_REEF_METHOD,
+)
+
+
+def get_profile_value(entry: Any, key: str, default: Any = None) -> Any:
+    """Read an editable aquarium-profile value.
+
+    v0.12.2 stores profile edits in config-entry options so existing aquariums can
+    be changed without creating a new config entry. The original config data is
+    kept as a fallback for installations created before v0.12.2.
+    """
+    if key in entry.options:
+        return entry.options.get(key, default)
+    return entry.data.get(key, default)
+
+
+def get_aquarium_name(entry: Any) -> str:
+    """Return the current display name without changing the config-entry ID."""
+    value = get_profile_value(entry, CONF_AQUARIUM_NAME, DEFAULT_AQUARIUM_NAME)
+    return str(value or DEFAULT_AQUARIUM_NAME).strip() or DEFAULT_AQUARIUM_NAME
 
 CONF_TEMPERATURE_ENTITY = "temperature_entity"
 CONF_PH_ENTITY = "ph_entity"
@@ -95,6 +127,56 @@ CONF_HEATER_ENTITIES = "heater_entities"
 CONF_ATO_ENTITIES = "ato_entities"
 CONF_LEAK_ENTITIES = "leak_entities"
 CONF_CALCIUM_REACTOR_ENTITIES = "calcium_reactor_entities"
+
+
+# Adaptive system modules (v0.12.2+)
+CONF_REFUGIUM_MODULE_ENABLED = "refugium_module_enabled"
+CONF_REFUGIUM_LIGHT_ENTITIES = "refugium_light_entities"
+CONF_REFUGIUM_PUMP_ENTITIES = "refugium_pump_entities"
+CONF_REFUGIUM_LIGHT_START = "refugium_light_start"
+CONF_REFUGIUM_LIGHT_END = "refugium_light_end"
+DEFAULT_REFUGIUM_MODULE_ENABLED = False
+DEFAULT_REFUGIUM_LIGHT_START = "20:00:00"
+DEFAULT_REFUGIUM_LIGHT_END = "08:00:00"
+
+CONF_DOSING_MODULE_ENABLED = "dosing_module_enabled"
+CONF_DOSING_PUMP_ENTITIES = "dosing_pump_entities"
+CONF_TRACE_DOSING_ENTITIES = "trace_dosing_entities"
+DEFAULT_DOSING_MODULE_ENABLED = False
+
+CONF_CALCIUM_REACTOR_MODULE_ENABLED = "calcium_reactor_module_enabled"
+CONF_CALCIUM_REACTOR_PH_ENTITY = "calcium_reactor_ph_entity"
+CONF_CALCIUM_REACTOR_CO2_ENTITY = "calcium_reactor_co2_entity"
+DEFAULT_CALCIUM_REACTOR_MODULE_ENABLED = False
+
+DOSING_SUPPLY_SYSTEMS = {
+    "fauna_marin_balling_light",
+    "ati_essentials",
+    "oceamo_duo",
+    "triton",
+}
+
+
+def recommended_modules(
+    reef_method: str | None,
+    supply_system: str | None,
+    calcium_reactor_configured: bool = False,
+) -> list[str]:
+    """Return adaptive module recommendations for the selected aquarium profile."""
+    method = str(reef_method or DEFAULT_REEF_METHOD)
+    supply = str(supply_system or DEFAULT_SUPPLY_SYSTEM)
+    result: list[str] = []
+
+    if method == "triton" or supply == "triton":
+        result.extend(("refugium", "reef_icp"))
+
+    if supply in DOSING_SUPPLY_SYSTEMS or method == "dsr":
+        result.append("dosing")
+
+    if supply == "calcium_reactor" or calcium_reactor_configured:
+        result.append("calcium_reactor")
+
+    return list(dict.fromkeys(result))
 
 EQUIPMENT_ENTITY_OPTION_PAIRS = (
     (CONF_SKIMMER_ENTITIES, CONF_SKIMMER_ENTITY),

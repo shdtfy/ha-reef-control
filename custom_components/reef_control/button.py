@@ -11,6 +11,7 @@ from .const import (
     CONF_WATER_LEVEL_ENTITY,
     DOMAIN,
     VERSION,
+    get_aquarium_name,
 )
 
 
@@ -34,7 +35,7 @@ class ReefControlAlarmResetButton(ButtonEntity):
     def device_info(self):
         return DeviceInfo(
             identifiers={(DOMAIN, self._entry.entry_id)},
-            name=self._entry.data[CONF_AQUARIUM_NAME],
+            name=get_aquarium_name(self._entry),
             manufacturer="Reef Control",
             model="Reef Aquarium",
             sw_version=VERSION,

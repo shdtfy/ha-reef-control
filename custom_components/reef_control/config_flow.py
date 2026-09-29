@@ -41,6 +41,7 @@ class ReefControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         "ati_essentials": "ATI Essentials",
                         "oceamo_duo": "Oceamo DUO",
                         "triton": "Triton Method",
+                        "calcium_reactor": "Calcium Reactor",
                         "other": "Other",
                     }
                 ),
@@ -70,10 +71,44 @@ class ReefControlOptionsFlow(config_entries.OptionsFlow):
         self._config_entry = config_entry
         self._pending_options = dict(config_entry.options)
         sync_legacy_entity_options(self._pending_options)
+        self._pending_profile = {
+            CONF_AQUARIUM_NAME: get_profile_value(
+                config_entry, CONF_AQUARIUM_NAME, DEFAULT_AQUARIUM_NAME
+            ),
+            CONF_VOLUME: get_profile_value(config_entry, CONF_VOLUME, 1.0),
+            CONF_TANK_TYPE: get_profile_value(
+                config_entry, CONF_TANK_TYPE, DEFAULT_TANK_TYPE
+            ),
+            CONF_SUPPLY_SYSTEM: get_profile_value(
+                config_entry, CONF_SUPPLY_SYSTEM, DEFAULT_SUPPLY_SYSTEM
+            ),
+            CONF_REEF_METHOD: get_profile_value(
+                config_entry, CONF_REEF_METHOD, DEFAULT_REEF_METHOD
+            ),
+        }
 
     @property
     def _options(self):
         return self._pending_options
+
+    def _profile(self, key, default=None):
+        return self._pending_profile.get(key, default)
+
+    def _recommended_module_names(self):
+        reactor_configured = bool(
+            get_entity_list(self._options, CONF_CALCIUM_REACTOR_ENTITIES)
+            or self._options.get(CONF_CALCIUM_REACTOR_PH_ENTITY)
+            or self._options.get(CONF_CALCIUM_REACTOR_CO2_ENTITY)
+            or self._options.get(
+                CONF_CALCIUM_REACTOR_MODULE_ENABLED,
+                DEFAULT_CALCIUM_REACTOR_MODULE_ENABLED,
+            )
+        )
+        return recommended_modules(
+            self._profile(CONF_REEF_METHOD, DEFAULT_REEF_METHOD),
+            self._profile(CONF_SUPPLY_SYSTEM, DEFAULT_SUPPLY_SYSTEM),
+            reactor_configured,
+        )
 
     def _suggested(self, key, default=None):
         return {"suggested_value": self._options.get(key, default)}
@@ -105,6 +140,8 @@ class ReefControlOptionsFlow(config_entries.OptionsFlow):
         return self.async_show_menu(
             step_id="init",
             menu_options=[
+                "aquarium_profile",
+                "system_modules",
                 "entities",
                 "water_values",
                 "limits",
@@ -121,10 +158,116 @@ class ReefControlOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_finish(self, user_input=None) -> FlowResult:
         data = sync_legacy_entity_options(dict(self._pending_options))
+        data.update(self._pending_profile)
+
+        # The config-entry ID / unique ID deliberately stays unchanged. The
+        # update listener consumes this one-shot marker, synchronizes the visible
+        # config-entry title and then reloads exactly once.
+        data[CONF_PROFILE_TITLE_SYNC_PENDING] = True
         return self.async_create_entry(title="", data=data)
 
     async def async_step_back_to_main(self, user_input=None) -> FlowResult:
         return await self.async_step_init()
+
+    async def async_step_aquarium_profile(self, user_input=None) -> FlowResult:
+        errors = {}
+        if user_input is not None:
+            name = str(user_input.get(CONF_AQUARIUM_NAME, "")).strip()
+            try:
+                volume = float(user_input.get(CONF_VOLUME, 0))
+            except (TypeError, ValueError):
+                volume = 0
+
+            if not name:
+                errors["base"] = "invalid_aquarium_name"
+            elif volume < 1:
+                errors["base"] = "invalid_volume"
+            else:
+                self._pending_profile.update(
+                    {
+                        CONF_AQUARIUM_NAME: name,
+                        CONF_VOLUME: volume,
+                        CONF_TANK_TYPE: user_input.get(
+                            CONF_TANK_TYPE, DEFAULT_TANK_TYPE
+                        ),
+                        CONF_SUPPLY_SYSTEM: user_input.get(
+                            CONF_SUPPLY_SYSTEM, DEFAULT_SUPPLY_SYSTEM
+                        ),
+                        CONF_REEF_METHOD: user_input.get(
+                            CONF_REEF_METHOD, DEFAULT_REEF_METHOD
+                        ),
+                    }
+                )
+                return await self.async_step_init()
+
+        fields = {
+            vol.Required(
+                CONF_AQUARIUM_NAME,
+                description={
+                    "suggested_value": self._profile(
+                        CONF_AQUARIUM_NAME, DEFAULT_AQUARIUM_NAME
+                    )
+                },
+            ): str,
+            vol.Required(
+                CONF_VOLUME,
+                description={"suggested_value": self._profile(CONF_VOLUME, 1.0)},
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=1,
+                    max=100000,
+                    step=1,
+                    mode=selector.NumberSelectorMode.BOX,
+                    unit_of_measurement="L",
+                )
+            ),
+            vol.Required(
+                CONF_TANK_TYPE,
+                default=self._profile(CONF_TANK_TYPE, DEFAULT_TANK_TYPE),
+            ): vol.In(
+                {
+                    "mixed_reef": "Mixed Reef",
+                    "sps": "SPS Reef",
+                    "lps": "LPS Reef",
+                    "soft_coral": "Soft Coral Reef",
+                    "fish_only": "Fish Only",
+                    "other": "Other",
+                }
+            ),
+            vol.Required(
+                CONF_SUPPLY_SYSTEM,
+                default=self._profile(
+                    CONF_SUPPLY_SYSTEM, DEFAULT_SUPPLY_SYSTEM
+                ),
+            ): vol.In(
+                {
+                    "none": "None / Other",
+                    "fauna_marin_balling_light": "Fauna Marin Balling Light",
+                    "ati_essentials": "ATI Essentials",
+                    "oceamo_duo": "Oceamo DUO",
+                    "triton": "Triton Method",
+                    "calcium_reactor": "Calcium Reactor",
+                    "other": "Other",
+                }
+            ),
+            vol.Required(
+                CONF_REEF_METHOD,
+                default=self._profile(CONF_REEF_METHOD, DEFAULT_REEF_METHOD),
+            ): vol.In(
+                {
+                    "none": "None",
+                    "berlin": "Berlin Method",
+                    "triton": "Triton Method",
+                    "dsr": "DSR",
+                    "other": "Other",
+                }
+            ),
+        }
+        return self.async_show_form(
+            step_id="aquarium_profile",
+            data_schema=vol.Schema(fields),
+            errors=errors,
+        )
 
     async def async_step_entities(self, user_input=None) -> FlowResult:
         equipment_fields = (
@@ -394,6 +537,258 @@ class ReefControlOptionsFlow(config_entries.OptionsFlow):
             ): bool,
         }
         return self.async_show_form(step_id="safety_control", data_schema=vol.Schema(fields))
+
+    async def async_step_system_modules(self, user_input=None) -> FlowResult:
+        recommendations = set(self._recommended_module_names())
+        menu_options = []
+
+        if (
+            "refugium" in recommendations
+            or self._options.get(
+                CONF_REFUGIUM_MODULE_ENABLED, DEFAULT_REFUGIUM_MODULE_ENABLED
+            )
+            or get_entity_list(self._options, CONF_REFUGIUM_LIGHT_ENTITIES)
+            or get_entity_list(self._options, CONF_REFUGIUM_PUMP_ENTITIES)
+        ):
+            menu_options.append("refugium_module")
+
+        if (
+            "dosing" in recommendations
+            or self._options.get(
+                CONF_DOSING_MODULE_ENABLED, DEFAULT_DOSING_MODULE_ENABLED
+            )
+            or get_entity_list(self._options, CONF_DOSING_PUMP_ENTITIES)
+            or get_entity_list(self._options, CONF_TRACE_DOSING_ENTITIES)
+        ):
+            menu_options.append("dosing_module")
+
+        if (
+            "calcium_reactor" in recommendations
+            or self._options.get(
+                CONF_CALCIUM_REACTOR_MODULE_ENABLED,
+                DEFAULT_CALCIUM_REACTOR_MODULE_ENABLED,
+            )
+            or get_entity_list(self._options, CONF_CALCIUM_REACTOR_ENTITIES)
+            or self._options.get(CONF_CALCIUM_REACTOR_PH_ENTITY)
+            or self._options.get(CONF_CALCIUM_REACTOR_CO2_ENTITY)
+        ):
+            menu_options.append("calcium_reactor_module")
+
+        if "reef_icp" in recommendations:
+            menu_options.append("reef_icp")
+
+        if not menu_options:
+            return await self.async_step_system_modules_none()
+
+        menu_options.append("back_to_main")
+        return self.async_show_menu(
+            step_id="system_modules",
+            menu_options=menu_options,
+        )
+
+    async def async_step_system_modules_none(self, user_input=None) -> FlowResult:
+        if user_input is not None:
+            return await self.async_step_init()
+        return self.async_show_form(
+            step_id="system_modules_none",
+            data_schema=vol.Schema({}),
+        )
+
+    async def async_step_refugium_module(self, user_input=None) -> FlowResult:
+        if user_input is not None:
+            changes = dict(user_input)
+            changes[CONF_REFUGIUM_LIGHT_ENTITIES] = get_entity_list(
+                changes, CONF_REFUGIUM_LIGHT_ENTITIES
+            )
+            changes[CONF_REFUGIUM_PUMP_ENTITIES] = get_entity_list(
+                changes, CONF_REFUGIUM_PUMP_ENTITIES
+            )
+            self._apply(changes)
+            return await self.async_step_system_modules()
+
+        fields = {
+            vol.Optional(
+                CONF_REFUGIUM_MODULE_ENABLED,
+                default=self._options.get(
+                    CONF_REFUGIUM_MODULE_ENABLED,
+                    DEFAULT_REFUGIUM_MODULE_ENABLED,
+                ),
+            ): bool,
+            vol.Optional(
+                CONF_REFUGIUM_LIGHT_ENTITIES,
+                description={
+                    "suggested_value": get_entity_list(
+                        self._options, CONF_REFUGIUM_LIGHT_ENTITIES
+                    )
+                },
+            ): selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain=["light", "switch", "input_boolean"],
+                    multiple=True,
+                    reorder=True,
+                )
+            ),
+            vol.Optional(
+                CONF_REFUGIUM_PUMP_ENTITIES,
+                description={
+                    "suggested_value": get_entity_list(
+                        self._options, CONF_REFUGIUM_PUMP_ENTITIES
+                    )
+                },
+            ): selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain=["switch", "input_boolean"],
+                    multiple=True,
+                    reorder=True,
+                )
+            ),
+            vol.Optional(
+                CONF_REFUGIUM_LIGHT_START,
+                default=self._options.get(
+                    CONF_REFUGIUM_LIGHT_START, DEFAULT_REFUGIUM_LIGHT_START
+                ),
+            ): selector.TimeSelector(),
+            vol.Optional(
+                CONF_REFUGIUM_LIGHT_END,
+                default=self._options.get(
+                    CONF_REFUGIUM_LIGHT_END, DEFAULT_REFUGIUM_LIGHT_END
+                ),
+            ): selector.TimeSelector(),
+        }
+        return self.async_show_form(
+            step_id="refugium_module",
+            data_schema=vol.Schema(fields),
+        )
+
+    async def async_step_dosing_module(self, user_input=None) -> FlowResult:
+        if user_input is not None:
+            changes = dict(user_input)
+            changes[CONF_DOSING_PUMP_ENTITIES] = get_entity_list(
+                changes, CONF_DOSING_PUMP_ENTITIES
+            )
+            changes[CONF_TRACE_DOSING_ENTITIES] = get_entity_list(
+                changes, CONF_TRACE_DOSING_ENTITIES
+            )
+            self._apply(changes)
+            return await self.async_step_system_modules()
+
+        dosing_domains = [
+            "switch",
+            "number",
+            "input_number",
+            "button",
+            "select",
+            "input_boolean",
+        ]
+        fields = {
+            vol.Optional(
+                CONF_DOSING_MODULE_ENABLED,
+                default=self._options.get(
+                    CONF_DOSING_MODULE_ENABLED,
+                    DEFAULT_DOSING_MODULE_ENABLED,
+                ),
+            ): bool,
+            vol.Optional(
+                CONF_DOSING_PUMP_ENTITIES,
+                description={
+                    "suggested_value": get_entity_list(
+                        self._options, CONF_DOSING_PUMP_ENTITIES
+                    )
+                },
+            ): selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain=dosing_domains,
+                    multiple=True,
+                    reorder=True,
+                )
+            ),
+            vol.Optional(
+                CONF_TRACE_DOSING_ENTITIES,
+                description={
+                    "suggested_value": get_entity_list(
+                        self._options, CONF_TRACE_DOSING_ENTITIES
+                    )
+                },
+            ): selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain=dosing_domains,
+                    multiple=True,
+                    reorder=True,
+                )
+            ),
+        }
+        return self.async_show_form(
+            step_id="dosing_module",
+            data_schema=vol.Schema(fields),
+        )
+
+    async def async_step_calcium_reactor_module(
+        self, user_input=None
+    ) -> FlowResult:
+        if user_input is not None:
+            changes = dict(user_input)
+            components = get_entity_list(
+                changes, CONF_CALCIUM_REACTOR_ENTITIES
+            )
+            co2_entity = changes.get(CONF_CALCIUM_REACTOR_CO2_ENTITY)
+            if co2_entity and co2_entity not in components:
+                components.append(co2_entity)
+            changes[CONF_CALCIUM_REACTOR_ENTITIES] = components
+
+            remove_keys = [
+                key
+                for key in (
+                    CONF_CALCIUM_REACTOR_PH_ENTITY,
+                    CONF_CALCIUM_REACTOR_CO2_ENTITY,
+                )
+                if not changes.get(key)
+            ]
+            self._apply(changes, remove_keys=remove_keys)
+            return await self.async_step_system_modules()
+
+        fields = {
+            vol.Optional(
+                CONF_CALCIUM_REACTOR_MODULE_ENABLED,
+                default=self._options.get(
+                    CONF_CALCIUM_REACTOR_MODULE_ENABLED,
+                    DEFAULT_CALCIUM_REACTOR_MODULE_ENABLED,
+                ),
+            ): bool,
+            vol.Optional(
+                CONF_CALCIUM_REACTOR_ENTITIES,
+                description={
+                    "suggested_value": get_entity_list(
+                        self._options, CONF_CALCIUM_REACTOR_ENTITIES
+                    )
+                },
+            ): selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain=["switch", "input_boolean"],
+                    multiple=True,
+                    reorder=True,
+                )
+            ),
+            vol.Optional(
+                CONF_CALCIUM_REACTOR_PH_ENTITY,
+                description=self._suggested(CONF_CALCIUM_REACTOR_PH_ENTITY),
+            ): selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain=["sensor", "input_number"]
+                )
+            ),
+            vol.Optional(
+                CONF_CALCIUM_REACTOR_CO2_ENTITY,
+                description=self._suggested(CONF_CALCIUM_REACTOR_CO2_ENTITY),
+            ): selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain=["switch", "input_boolean"]
+                )
+            ),
+        }
+        return self.async_show_form(
+            step_id="calcium_reactor_module",
+            data_schema=vol.Schema(fields),
+        )
 
     async def async_step_reef_icp(self, user_input=None) -> FlowResult:
         if user_input is not None:
