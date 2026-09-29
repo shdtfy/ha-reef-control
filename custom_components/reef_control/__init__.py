@@ -17,10 +17,12 @@ from .equipment_control import ReefControlEquipmentController
 from .safety_control import ReefControlSafetyController
 from .uvc_control import ReefControlUvcController
 
-CARD_VERSION = "0.1.9"
+CARD_VERSION = "0.1.10"
 CARD_URL = "/reef_control/reef-control-card.js"
 CARD_RESOURCE_URL = f"{CARD_URL}?v={CARD_VERSION}"
 CARD_FILE = Path(__file__).parent / "www" / "reef-control-card.js"
+
+ENTRY_PLATFORMS = [*PLATFORMS, "button"] if "button" not in PLATFORMS else list(PLATFORMS)
 
 
 def _first_runtime(hass: HomeAssistant, entry_id: str | None = None):
@@ -166,7 +168,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         }
     )
 
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    await hass.config_entries.async_forward_entry_setups(entry, ENTRY_PLATFORMS)
     await equipment.async_start()
     await safety.async_start()
     await uvc.async_start()
@@ -186,7 +188,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if controller:
             await controller.async_stop()
 
-    ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    ok = await hass.config_entries.async_unload_platforms(entry, ENTRY_PLATFORMS)
     if ok:
         hass.data[DOMAIN].pop(entry.entry_id, None)
     return ok
