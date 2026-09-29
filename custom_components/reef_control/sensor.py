@@ -43,7 +43,28 @@ class ReefControlAquariumSensor(ReefControlBaseSensor):
     @property
     def native_value(self): return self._entry.data[CONF_AQUARIUM_NAME]
     @property
-    def extra_state_attributes(self): return {"volume_l":self._entry.data[CONF_VOLUME],"tank_type":self._entry.data.get(CONF_TANK_TYPE,"mixed_reef"),"supply_system":self._entry.data.get(CONF_SUPPLY_SYSTEM,"none"),"reef_method":self._entry.data.get(CONF_REEF_METHOD,"none"),"reef_control_version":VERSION}
+    def extra_state_attributes(self):
+        equipment_entities = {
+            "return_pump": self._entry.options.get(CONF_RETURN_PUMP_ENTITY),
+            "skimmer": self._entry.options.get(CONF_SKIMMER_ENTITY),
+            "flow_pump": self._entry.options.get(CONF_FLOW_PUMP_ENTITY),
+            "uvc": self._entry.options.get(CONF_UVC_ENTITY),
+            "heater": self._entry.options.get(CONF_HEATER_ENTITY),
+            "ato": self._entry.options.get(CONF_ATO_ENTITY),
+            "light": self._entry.options.get(CONF_LIGHT_ENTITY),
+        }
+        return {
+            "volume_l": self._entry.data[CONF_VOLUME],
+            "tank_type": self._entry.data.get(CONF_TANK_TYPE, "mixed_reef"),
+            "supply_system": self._entry.data.get(CONF_SUPPLY_SYSTEM, "none"),
+            "reef_method": self._entry.data.get(CONF_REEF_METHOD, "none"),
+            "reef_control_version": VERSION,
+            "equipment_entities": {
+                key: entity_id
+                for key, entity_id in equipment_entities.items()
+                if entity_id
+            },
+        }
 
 class ReefControlRuntimeSensor(ReefControlBaseSensor):
     def __init__(self,hass,entry): super().__init__(entry); self.hass=hass; self._remove_interval=None
