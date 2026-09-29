@@ -8,8 +8,8 @@
 
 It brings aquarium equipment, water parameters, operating modes, safety logic, manual measurements and Reef ICP data together in one Home Assistant device, with an optional Lovelace card for a compact aquarium overview.
 
-> Current integration version: **v0.12.1**  
-> Current Reef Control card: **v0.1.11**
+> Current integration version: **v0.12.2**  
+> Current Reef Control card: **v0.1.12**
 
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2025.1%2B-41BDF5?logo=home-assistant&logoColor=white)](https://www.home-assistant.io/)
 [![HACS](https://img.shields.io/badge/HACS-Custom%20Repository-41BDF5)](https://www.hacs.xyz/)
@@ -34,6 +34,45 @@ Each Reef Control aquarium stores:
 - reef method
 
 This creates one Home Assistant device that groups the Reef Control entities for that aquarium.
+
+### Editable aquarium profile
+
+Since **v0.12.2**, an existing aquarium no longer has to be recreated when its setup changes.
+
+Open **Configure → Aquarium & system** to edit:
+
+- aquarium name
+- net water volume
+- aquarium type
+- supply system
+- reef method
+
+The existing Reef Control config-entry ID remains unchanged, so equipment assignments, Reef ICP links and entity identities stay attached to the same aquarium.
+
+### Adaptive system modules
+
+Reef Control can use the selected reef method and supply system to suggest relevant optional modules.
+
+Examples:
+
+```text
+Triton Method
+├── Refugium module
+└── Reef ICP focus
+
+Fauna Marin Balling Light
+└── Dosing & trace-element module
+
+Calcium Reactor
+└── Calcium-reactor module
+    ├── reactor components
+    ├── reactor pH sensor
+    └── CO₂ solenoid
+```
+
+The suggestions are **not restrictive**. A user can still combine methods and equipment differently.
+
+In **v0.12.2**, these new modules provide profile-aware configuration and dashboard metadata. Automatic refugium scheduling, automatic dosing and automatic calcium-reactor pH/CO₂ regulation are intentionally **not active yet**. Those controllers can be added later on top of the stored module configuration.
 
 ---
 
