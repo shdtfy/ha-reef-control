@@ -181,14 +181,16 @@ class ReefControlAtoControlSwitch(ReefControlBaseSwitch):
         sensor=self._entry.options.get(CONF_WATER_LEVEL_ENTITY)
         if sensor:self._remove_listener=async_track_state_change_event(self.hass,[sensor],self._level_changed)
         pump=self._entry.options.get(CONF_ATO_ENTITY)
-        if pump and self.hass.states.get(pump) and self.hass.states[pump].state==STATE_ON:
+        pump_state=self.hass.states.get(pump) if pump else None
+        if pump_state and pump_state.state==STATE_ON:
             await self._set(pump,False)
         if self._is_on:await self.async_evaluate()
     async def async_will_remove_from_hass(self):
         if self._remove_listener:self._remove_listener(); self._remove_listener=None
         self._cancel_tasks()
         pump=self._entry.options.get(CONF_ATO_ENTITY)
-        if pump and self.hass.states.get(pump) and self.hass.states[pump].state==STATE_ON:await self._set(pump,False)
+        pump_state=self.hass.states.get(pump) if pump else None
+        if pump_state and pump_state.state==STATE_ON:await self._set(pump,False)
     async def _level_changed(self,event):
         if self._is_on:await self.async_evaluate()
     def _cancel_task(self,name):
