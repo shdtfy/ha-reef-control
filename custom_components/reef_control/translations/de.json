@@ -22,14 +22,14 @@
       }
     },
     "abort": {
-      "already_configured": "This aquarium is already configured."
+      "already_configured": "Dieses Aquarium ist bereits eingerichtet."
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "Reef Control konfigurieren",
-        "description": "Wähle aus, welchen Bereich du bearbeiten möchtest.",
+        "description": "Wähle einen Bereich aus. Änderungen bleiben in dieser Konfigurationssitzung erhalten, bis du „Speichern & schließen“ auswählst.",
         "menu_options": {
           "entities": "Geräte & Entitäten",
           "water_values": "Wasserwerte",
@@ -40,31 +40,34 @@
           "ato_control": "Wasserstandsregelung",
           "equipment_control": "Techniksteuerung",
           "safety_control": "Sicherheitssteuerung",
-          "uvc_control": "UV-C-Steuerung"
+          "uvc_control": "UV-C-Steuerung",
+          "finish": "Speichern & schließen"
         }
       },
       "entities": {
         "title": "Geräte & Entitäten",
-        "description": "Ordne die Home-Assistant-Entitäten deiner Aquarientechnik zu.",
+        "description": "Ordne jeder Technikgruppe eine oder mehrere Home-Assistant-Entitäten zu. Messsensoren wie Temperatur und Wasserstand werden weiterhin separat ausgewählt.",
         "data": {
-          "skimmer_entity": "Abschäumer",
-          "return_pump_entity": "Rückförderpumpe",
-          "flow_pump_entity": "Strömungspumpe",
-          "uvc_entity": "UV-C",
-          "light_entity": "Aquariumbeleuchtung",
-          "heater_entity": "Heizung",
-          "ato_entity": "Nachfüllanlage (ATO)",
-          "leak_entity": "Leckagesensor"
+          "skimmer_entities": "Abschäumer",
+          "return_pump_entities": "Rückförderpumpen",
+          "flow_pump_entities": "Strömungspumpen",
+          "uvc_entities": "UV-C-Geräte",
+          "light_entities": "Aquariumbeleuchtung",
+          "heater_entities": "Heizungen",
+          "ato_entities": "Nachfüllpumpen (ATO)",
+          "calcium_reactor_entities": "Kalkreaktor",
+          "leak_entities": "Leckagesensoren"
         },
         "data_description": {
-          "skimmer_entity": "Entität, über die der Abschäumer ein- und ausgeschaltet wird.",
-          "return_pump_entity": "Entität, über die die Rückförderpumpe ein- und ausgeschaltet wird.",
-          "flow_pump_entity": "Entität, über die die Strömungspumpe ein- und ausgeschaltet wird.",
-          "uvc_entity": "Entität, über die die UV-C-Anlage ein- und ausgeschaltet wird.",
-          "light_entity": "Entität zur Steuerung der Aquariumbeleuchtung.",
-          "heater_entity": "Entität, über die die Aquariumheizung geschaltet wird. Reef Control kann sie für die automatische Temperaturregelung verwenden.",
-          "ato_entity": "Entität, über die die Nachfüllpumpe geschaltet wird. Reef Control kann sie für die automatische Wasserstandsregelung verwenden.",
-          "leak_entity": "Binärsensor oder Eingabe-Helfer, der Wasser bzw. eine Leckage erkennt."
+          "skimmer_entities": "Wähle alle Entitäten, über die deine Abschäumer geschaltet werden.",
+          "return_pump_entities": "Wähle alle Rückförderpumpen. Bei redundanten Pumpen gilt das Rückfördersystem als aktiv, solange mindestens eine ausgewählte Pumpe läuft.",
+          "flow_pump_entities": "Wähle alle Strömungspumpen, zum Beispiel die linke und rechte Pumpe.",
+          "uvc_entities": "Wähle alle Entitäten, über die deine UV-C-Technik geschaltet wird.",
+          "light_entities": "Wähle alle Entitäten zur Steuerung der Aquariumbeleuchtung.",
+          "heater_entities": "Wähle alle Heizungen. Die automatische Temperaturregelung schaltet die ausgewählten Heizungen gemeinsam.",
+          "ato_entities": "Wähle alle Entitäten der automatischen Nachfüllung. Die Wasserstandsregelung schaltet die ausgewählten Pumpen gemeinsam.",
+          "calcium_reactor_entities": "Optional: Wähle schaltbare Komponenten des Kalkreaktors. Mehrfachauswahl ist möglich, zum Beispiel Zulaufpumpe, Umwälzpumpe oder CO₂-Magnetventil. Reef Control behandelt sie bei Fütterung/Wartung als gemeinsame Technikgruppe.",
+          "leak_entities": "Wähle einen oder mehrere Binärsensoren/Eingabe-Helfer, die Wasser bzw. eine Leckage erkennen. Sobald einer aktiv ist, gilt Leckage als erkannt."
         }
       },
       "water_values": {
@@ -80,9 +83,9 @@
           "salinity_source": "Quelle der Salinität"
         },
         "data_description": {
-          "temperature_entity": "Sensor, der die aktuelle Wassertemperatur des Aquariums liefert.",
-          "ph_entity": "Sensor, der den aktuellen pH-Wert liefert.",
-          "salinity_entity": "Sensor, der die aktuelle Salinität liefert.",
+          "temperature_entity": "Primärer Sensor für die aktuelle Wassertemperatur des Aquariums.",
+          "ph_entity": "Primärer Sensor für den aktuellen pH-Wert.",
+          "salinity_entity": "Primärer Sensor für die aktuelle Salinität.",
           "water_level_entity": "Digitaler Schwimmerschalter/optischer Sensor oder numerischer Wasserstandssensor. Numerische Werte können als Wasserstand in cm ausgewertet werden.",
           "conductivity_entity": "Sensor für die elektrische Leitfähigkeit. Reef Control normalisiert µS/cm und mS/cm und kann daraus zusammen mit der Temperatur die Salinität berechnen.",
           "redox_entity": "Sensor für das Redoxpotential (ORP) in mV.",
@@ -96,7 +99,8 @@
           "temperature_limits": "Temperatur",
           "ph_limits": "pH",
           "salinity_limits": "Salinität",
-          "redox_limits": "Redox"
+          "redox_limits": "Redox",
+          "back_to_main": "← Zurück"
         }
       },
       "temperature_limits": {
@@ -109,10 +113,10 @@
           "temperature_critical_max": "Kritisch über"
         },
         "data_description": {
-          "temperature_min": "Unterhalb dieses Wertes liegt die Temperatur außerhalb des gewünschten Normalbereichs.",
-          "temperature_max": "Oberhalb dieses Wertes liegt die Temperatur außerhalb des gewünschten Normalbereichs.",
-          "temperature_critical_min": "Unterhalb dieses Wertes bewertet Reef Control die Temperatur als kritisch.",
-          "temperature_critical_max": "Oberhalb dieses Wertes bewertet Reef Control die Temperatur als kritisch."
+          "temperature_min": "Unterhalb dieses Wertes liegt der Messwert außerhalb des gewünschten Normalbereichs.",
+          "temperature_max": "Oberhalb dieses Wertes liegt der Messwert außerhalb des gewünschten Normalbereichs.",
+          "temperature_critical_min": "Unterhalb dieses Wertes bewertet Reef Control den Messwert als kritisch.",
+          "temperature_critical_max": "Oberhalb dieses Wertes bewertet Reef Control den Messwert als kritisch."
         }
       },
       "ph_limits": {
@@ -125,10 +129,10 @@
           "ph_critical_max": "Kritisch über"
         },
         "data_description": {
-          "ph_min": "Unterhalb dieses Wertes liegt der pH-Wert außerhalb des gewünschten Normalbereichs.",
-          "ph_max": "Oberhalb dieses Wertes liegt der pH-Wert außerhalb des gewünschten Normalbereichs.",
-          "ph_critical_min": "Unterhalb dieses Wertes bewertet Reef Control den pH-Wert als kritisch.",
-          "ph_critical_max": "Oberhalb dieses Wertes bewertet Reef Control den pH-Wert als kritisch."
+          "ph_min": "Unterhalb dieses Wertes liegt der Messwert außerhalb des gewünschten Normalbereichs.",
+          "ph_max": "Oberhalb dieses Wertes liegt der Messwert außerhalb des gewünschten Normalbereichs.",
+          "ph_critical_min": "Unterhalb dieses Wertes bewertet Reef Control den Messwert als kritisch.",
+          "ph_critical_max": "Oberhalb dieses Wertes bewertet Reef Control den Messwert als kritisch."
         }
       },
       "salinity_limits": {
@@ -141,10 +145,26 @@
           "salinity_critical_max": "Kritisch über"
         },
         "data_description": {
-          "salinity_min": "Unterhalb dieses Wertes liegt die Salinität außerhalb des gewünschten Normalbereichs.",
-          "salinity_max": "Oberhalb dieses Wertes liegt die Salinität außerhalb des gewünschten Normalbereichs.",
-          "salinity_critical_min": "Unterhalb dieses Wertes bewertet Reef Control die Salinität als kritisch.",
-          "salinity_critical_max": "Oberhalb dieses Wertes bewertet Reef Control die Salinität als kritisch."
+          "salinity_min": "Unterhalb dieses Wertes liegt der Messwert außerhalb des gewünschten Normalbereichs.",
+          "salinity_max": "Oberhalb dieses Wertes liegt der Messwert außerhalb des gewünschten Normalbereichs.",
+          "salinity_critical_min": "Unterhalb dieses Wertes bewertet Reef Control den Messwert als kritisch.",
+          "salinity_critical_max": "Oberhalb dieses Wertes bewertet Reef Control den Messwert als kritisch."
+        }
+      },
+      "redox_limits": {
+        "title": "Redox",
+        "description": "Lege Normalbereich und kritische Grenzen für das Redoxpotential fest.",
+        "data": {
+          "redox_min": "Normalbereich von",
+          "redox_max": "Normalbereich bis",
+          "redox_critical_min": "Kritisch unter",
+          "redox_critical_max": "Kritisch über"
+        },
+        "data_description": {
+          "redox_min": "Unterhalb dieses Wertes liegt der Messwert außerhalb des gewünschten Normalbereichs.",
+          "redox_max": "Oberhalb dieses Wertes liegt der Messwert außerhalb des gewünschten Normalbereichs.",
+          "redox_critical_min": "Unterhalb dieses Wertes bewertet Reef Control den Messwert als kritisch.",
+          "redox_critical_max": "Oberhalb dieses Wertes bewertet Reef Control den Messwert als kritisch."
         }
       },
       "operating_modes": {
@@ -154,38 +174,42 @@
           "feeding_duration": "Fütterungsdauer",
           "skimmer_delay": "Abschäumer-Neustartverzögerung",
           "feeding_pause_skimmer": "Abschäumer beim Füttern pausieren",
-          "feeding_pause_return_pump": "Rückförderpumpe beim Füttern pausieren",
-          "feeding_pause_flow_pump": "Strömungspumpe beim Füttern pausieren",
+          "feeding_pause_return_pump": "Rückförderpumpen beim Füttern pausieren",
+          "feeding_pause_flow_pump": "Strömungspumpen beim Füttern pausieren",
           "feeding_pause_uvc": "UV-C beim Füttern pausieren",
           "feeding_pause_ato": "Nachfüllanlage beim Füttern pausieren",
+          "feeding_pause_calcium_reactor": "Kalkreaktor beim Füttern pausieren",
           "maintenance_pause_skimmer": "Abschäumer bei Wartung pausieren",
-          "maintenance_pause_return_pump": "Rückförderpumpe bei Wartung pausieren",
-          "maintenance_pause_flow_pump": "Strömungspumpe bei Wartung pausieren",
+          "maintenance_pause_return_pump": "Rückförderpumpen bei Wartung pausieren",
+          "maintenance_pause_flow_pump": "Strömungspumpen bei Wartung pausieren",
           "maintenance_pause_uvc": "UV-C bei Wartung pausieren",
           "maintenance_pause_ato": "Nachfüllanlage bei Wartung pausieren",
-          "maintenance_pause_heater": "Heizung bei Wartung pausieren",
-          "maintenance_pause_light": "Aquariumbeleuchtung bei Wartung pausieren"
+          "maintenance_pause_heater": "Heizungen bei Wartung pausieren",
+          "maintenance_pause_light": "Aquariumbeleuchtung bei Wartung pausieren",
+          "maintenance_pause_calcium_reactor": "Kalkreaktor bei Wartung pausieren"
         },
         "data_description": {
           "feeding_duration": "Dauer, nach der der Fütterungsmodus automatisch beendet wird.",
-          "skimmer_delay": "Zusätzliche Wartezeit nach Ende des Fütterungsmodus, bevor der Abschäumer wieder eingeschaltet wird.",
-          "feeding_pause_skimmer": "Schaltet den Abschäumer während des Fütterungsmodus aus.",
-          "feeding_pause_return_pump": "Schaltet die Rückförderpumpe während des Fütterungsmodus aus.",
-          "feeding_pause_flow_pump": "Schaltet die Strömungspumpe während des Fütterungsmodus aus.",
-          "feeding_pause_uvc": "Schaltet die UV-C-Anlage während des Fütterungsmodus aus.",
-          "feeding_pause_ato": "Schaltet die automatische Nachfüllanlage während des Fütterungsmodus aus.",
-          "maintenance_pause_skimmer": "Schaltet den Abschäumer während des Wartungsmodus aus.",
-          "maintenance_pause_return_pump": "Schaltet die Rückförderpumpe während des Wartungsmodus aus.",
-          "maintenance_pause_flow_pump": "Schaltet die Strömungspumpe während des Wartungsmodus aus.",
-          "maintenance_pause_uvc": "Schaltet die UV-C-Anlage während des Wartungsmodus aus.",
-          "maintenance_pause_ato": "Schaltet die automatische Nachfüllanlage während des Wartungsmodus aus.",
-          "maintenance_pause_heater": "Schaltet die Heizung während des Wartungsmodus aus. Die automatische Temperaturregelung pausiert ebenfalls.",
-          "maintenance_pause_light": "Schaltet die Aquariumbeleuchtung während des Wartungsmodus aus."
+          "skimmer_delay": "Zusätzliche Wartezeit nach Ende des Fütterungsmodus, bevor zuvor laufende Abschäumer wieder eingeschaltet werden.",
+          "feeding_pause_skimmer": "Schaltet alle zugeordneten Abschäumer während des Fütterungsmodus aus.",
+          "feeding_pause_return_pump": "Schaltet alle zugeordneten Rückförderpumpen während des Fütterungsmodus aus.",
+          "feeding_pause_flow_pump": "Schaltet alle zugeordneten Strömungspumpen während des Fütterungsmodus aus.",
+          "feeding_pause_uvc": "Schaltet alle zugeordneten UV-C-Geräte während des Fütterungsmodus aus.",
+          "feeding_pause_ato": "Pausiert die zugeordnete Nachfüllpumpengruppe während des Fütterungsmodus.",
+          "feeding_pause_calcium_reactor": "Schaltet alle zugeordneten Kalkreaktor-Entitäten während des Fütterungsmodus aus. Standardmäßig deaktiviert.",
+          "maintenance_pause_skimmer": "Schaltet alle zugeordneten Abschäumer während des Wartungsmodus aus.",
+          "maintenance_pause_return_pump": "Schaltet alle zugeordneten Rückförderpumpen während des Wartungsmodus aus.",
+          "maintenance_pause_flow_pump": "Schaltet alle zugeordneten Strömungspumpen während des Wartungsmodus aus.",
+          "maintenance_pause_uvc": "Schaltet alle zugeordneten UV-C-Geräte während des Wartungsmodus aus.",
+          "maintenance_pause_ato": "Pausiert die zugeordnete Nachfüllpumpengruppe während des Wartungsmodus.",
+          "maintenance_pause_heater": "Schaltet alle zugeordneten Heizungen während des Wartungsmodus aus. Die automatische Temperaturregelung pausiert ebenfalls.",
+          "maintenance_pause_light": "Schaltet alle zugeordneten Aquariumleuchten während des Wartungsmodus aus.",
+          "maintenance_pause_calcium_reactor": "Schaltet alle zugeordneten Kalkreaktor-Entitäten während des Wartungsmodus aus. Standardmäßig deaktiviert."
         }
       },
       "temperature_control": {
         "title": "Temperaturregelung",
-        "description": "Konfiguriere die automatische Steuerung der Heizung. Dafür müssen unter Geräte & Entitäten sowie Wasserwerte eine Heizung und ein Temperatursensor zugeordnet sein.",
+        "description": "Konfiguriere die automatische Steuerung der Heizungen. Dafür müssen unter Geräte & Entitäten sowie Wasserwerte mindestens eine Heizung und ein Temperatursensor zugeordnet sein.",
         "data": {
           "temperature_control_enabled": "Temperaturregelung aktivieren",
           "temperature_target": "Solltemperatur",
@@ -195,10 +219,10 @@
         },
         "data_description": {
           "temperature_control_enabled": "Aktiviert die automatische Heizungssteuerung durch Reef Control.",
-          "temperature_target": "Temperatur, auf die Reef Control das Aquarium regeln soll. Beim Erreichen dieses Wertes wird die Heizung ausgeschaltet.",
-          "temperature_hysteresis": "Verhindert häufiges Ein- und Ausschalten. Beispiel: Bei 25,0 °C Solltemperatur und 0,3 °C Hysterese schaltet die Heizung bei 24,7 °C oder darunter ein und bei 25,0 °C oder darüber aus.",
-          "temperature_min_on_time": "Nach dem Einschalten bleibt die Heizung mindestens so lange eingeschaltet, bevor Reef Control sie wieder ausschalten darf.",
-          "temperature_min_off_time": "Nach dem Ausschalten wartet Reef Control mindestens so lange, bevor die Heizung erneut eingeschaltet werden darf."
+          "temperature_target": "Temperatur, auf die Reef Control das Aquarium regeln soll. Beim Erreichen dieses Wertes werden alle ausgewählten Heizungen ausgeschaltet.",
+          "temperature_hysteresis": "Verhindert häufiges Ein- und Ausschalten. Beispiel: Bei 25,0 °C Solltemperatur und 0,3 °C Hysterese startet die Heizgruppe bei 24,7 °C oder darunter und stoppt bei 25,0 °C oder darüber.",
+          "temperature_min_on_time": "Nach dem Einschalten bleibt die Heizgruppe mindestens so lange eingeschaltet.",
+          "temperature_min_off_time": "Nach dem Ausschalten wartet Reef Control mindestens so lange, bevor die Heizgruppe erneut eingeschaltet werden darf."
         }
       },
       "reef_icp": {
@@ -217,7 +241,7 @@
       },
       "ato_control": {
         "title": "Wasserstandsregelung",
-        "description": "Konfiguriere die automatische Nachfüllung. Dafür müssen zuvor ein Wasserstandssensor und eine Nachfüllpumpe zugeordnet sein.",
+        "description": "Konfiguriere die automatische Nachfüllung. Dafür müssen zuvor ein Wasserstandssensor und mindestens eine Nachfüllpumpe zugeordnet sein.",
         "data": {
           "ato_control_enabled": "Wasserstandsregelung aktivieren",
           "ato_low_state": "Zustand für niedrigen Wasserstand",
@@ -231,8 +255,8 @@
         "data_description": {
           "ato_control_enabled": "Aktiviert die automatische Nachfüllsteuerung durch Reef Control.",
           "ato_low_state": "Lege fest, ob EIN oder AUS bei deinem Sensor bedeutet, dass der Wasserstand zu niedrig ist.",
-          "ato_confirm_delay": "Der Wasserstand muss so lange durchgehend als niedrig erkannt werden, bevor die Pumpe startet. Das filtert Wellen und kurze Sensorwechsel.",
-          "ato_max_runtime": "Harte Sicherheitsgrenze für einen Nachfüllvorgang. Wird sie erreicht, schaltet Reef Control die Pumpe aus und verriegelt die Regelung, bis du sie bewusst aus- und wieder einschaltest.",
+          "ato_confirm_delay": "Der Wasserstand muss so lange durchgehend als niedrig erkannt werden, bevor die Pumpengruppe startet. Das filtert Wellen und kurze Sensorwechsel.",
+          "ato_max_runtime": "Harte Sicherheitsgrenze für einen Nachfüllvorgang. Wird sie erreicht, schaltet Reef Control alle ausgewählten Nachfüllpumpen aus und verriegelt die Regelung, bis du sie bewusst aus- und wieder einschaltest.",
           "ato_cooldown": "Mindestwartezeit nach einer abgeschlossenen Nachfüllung, bevor erneut nachgefüllt werden darf.",
           "water_level_mode": "Automatisch erkennt Reef Control digitale Sensoren und numerische cm-Werte. Die Art kann bei Bedarf fest vorgegeben werden.",
           "water_level_low_cm": "Bei einem numerischen Wasserstand gilt dieser Wert oder weniger als zu niedrig.",
@@ -241,26 +265,26 @@
       },
       "equipment_control": {
         "title": "Techniksteuerung",
-        "description": "Verknüpfe Rückförderpumpe, Abschäumer, UV-C und Nachfüllanlage logisch miteinander. Fällt die Rückförderung aus oder wird ausgeschaltet, kann Reef Control abhängige Geräte sicher pausieren und kontrolliert wieder starten.",
+        "description": "Verknüpfe Rückförderpumpen, Abschäumer, UV-C, Nachfüllanlage und optional Strömungspumpen logisch miteinander. Stoppt das gesamte Rückfördersystem, kann Reef Control abhängige Geräte sicher pausieren und kontrolliert wieder starten.",
         "data": {
           "equipment_control_enabled": "Techniksteuerung aktivieren",
-          "return_master_skimmer": "Abschäumer von Rückförderpumpe abhängig",
-          "return_master_uvc": "UV-C von Rückförderpumpe abhängig",
-          "return_master_ato": "Nachfüllanlage von Rückförderpumpe abhängig",
+          "return_master_skimmer": "Abschäumer von Rückförderung abhängig",
+          "return_master_uvc": "UV-C von Rückförderung abhängig",
+          "return_master_ato": "Nachfüllanlage von Rückförderung abhängig",
           "equipment_skimmer_delay": "Abschäumer-Wiederanlaufverzögerung",
           "equipment_uvc_delay": "UV-C-Wiederanlaufverzögerung",
-          "return_master_flow": "Strömungspumpe von Rückförderpumpe abhängig",
+          "return_master_flow": "Strömungspumpen von Rückförderung abhängig",
           "equipment_flow_delay": "Strömungspumpen-Wiederanlaufverzögerung"
         },
         "data_description": {
           "equipment_control_enabled": "Aktiviert die geräteübergreifende Sicherheits- und Wiederanlauflogik.",
-          "return_master_skimmer": "Schaltet den Abschäumer aus, sobald die Rückförderpumpe nicht läuft. Nach Rückkehr der Rückförderung startet er erst nach der eingestellten Verzögerung.",
-          "return_master_uvc": "Schaltet UV-C aus, wenn keine Rückförderung vorhanden ist, und startet UV-C anschließend verzögert neu.",
-          "return_master_ato": "Sperrt die Nachfüllpumpe bei ausgeschalteter Rückförderpumpe. Nach dem Wiederanlauf wird die automatische Wasserstandsregelung neu ausgewertet.",
-          "equipment_skimmer_delay": "Wartezeit nach dem Start der Rückförderpumpe, bevor ein zuvor automatisch pausierter Abschäumer wieder eingeschaltet wird.",
-          "equipment_uvc_delay": "Wartezeit nach dem Start der Rückförderpumpe, bevor ein zuvor automatisch pausiertes UV-C-Gerät wieder eingeschaltet wird.",
-          "return_master_flow": "Optional: Stoppt die Strömungspumpe zusammen mit der Rückförderpumpe und startet sie kontrolliert neu. Standardmäßig deaktiviert, da Strömung im Hauptbecken oft weiterlaufen soll.",
-          "equipment_flow_delay": "Wartezeit nach dem Start der Rückförderpumpe, bevor eine automatisch pausierte Strömungspumpe wieder startet."
+          "return_master_skimmer": "Schaltet alle ausgewählten Abschäumer aus, sobald keine Rückförderpumpe mehr läuft. Zuvor laufende Abschäumer starten nach der eingestellten Verzögerung wieder.",
+          "return_master_uvc": "Schaltet alle ausgewählten UV-C-Geräte aus, wenn keine Rückförderung vorhanden ist, und startet sie anschließend verzögert neu.",
+          "return_master_ato": "Sperrt die Nachfüllpumpengruppe, solange keine Rückförderpumpe läuft. Nach dem Wiederanlauf wird die automatische Wasserstandsregelung neu ausgewertet.",
+          "equipment_skimmer_delay": "Wartezeit nach Wiederkehr der Rückförderung, bevor automatisch pausierte Abschäumer wieder eingeschaltet werden.",
+          "equipment_uvc_delay": "Wartezeit nach Wiederkehr der Rückförderung, bevor automatisch pausierte UV-C-Geräte wieder eingeschaltet werden.",
+          "return_master_flow": "Optional: Stoppt alle ausgewählten Strömungspumpen zusammen mit dem Rückfördersystem und startet sie kontrolliert neu. Standardmäßig deaktiviert, da Strömung im Hauptbecken oft weiterlaufen soll.",
+          "equipment_flow_delay": "Wartezeit nach Wiederkehr der Rückförderung, bevor automatisch pausierte Strömungspumpen wieder starten."
         }
       },
       "safety_control": {
@@ -268,32 +292,32 @@
         "description": "Zentrale Schutzfunktionen für das Aquarium. Sicherheitsregeln haben Vorrang vor normalen Laufzeiten und Regelungen. Ein erkannter Leckagealarm bleibt verriegelt, bis die Sicherheitssteuerung bewusst aus- und wieder eingeschaltet wird.",
         "data": {
           "safety_control_enabled": "Sicherheitssteuerung aktivieren",
-          "safety_heater_high_temp": "Heizung bei kritischer Übertemperatur sofort ausschalten",
-          "safety_heater_sensor_fail": "Heizung bei Ausfall des Temperatursensors ausschalten",
+          "safety_heater_high_temp": "Heizungen bei kritischer Übertemperatur sofort ausschalten",
+          "safety_heater_sensor_fail": "Heizungen bei Ausfall des Temperatursensors ausschalten",
           "leak_active_state": "Zustand für erkannte Leckage",
           "safety_leak_shutdown": "Notabschaltung bei Leckage aktivieren",
-          "safety_leak_return_pump": "Rückförderpumpe bei Leckage ausschalten",
+          "safety_leak_return_pump": "Rückförderpumpen bei Leckage ausschalten",
           "safety_leak_skimmer": "Abschäumer bei Leckage ausschalten",
           "safety_leak_uvc": "UV-C bei Leckage ausschalten",
           "safety_leak_ato": "Nachfüllanlage bei Leckage ausschalten",
-          "safety_leak_heater": "Heizung bei Leckage ausschalten"
+          "safety_leak_heater": "Heizungen bei Leckage ausschalten"
         },
         "data_description": {
           "safety_control_enabled": "Aktiviert die zentralen Schutzverriegelungen von Reef Control.",
-          "safety_heater_high_temp": "Überschreitet die Temperatur den unter Grenzwerte eingestellten kritischen Maximalwert, wird die Heizung ohne Mindestlaufzeit sofort ausgeschaltet.",
-          "safety_heater_sensor_fail": "Fail-Safe: Ist der konfigurierte Temperatursensor nicht verfügbar oder liefert keinen gültigen Wert, wird eine eingeschaltete Heizung ausgeschaltet.",
+          "safety_heater_high_temp": "Überschreitet die Temperatur den kritischen Maximalwert, werden alle zugeordneten Heizungen ohne Mindestlaufzeit sofort ausgeschaltet.",
+          "safety_heater_sensor_fail": "Fail-Safe: Ist der konfigurierte Temperatursensor nicht verfügbar oder ungültig, werden alle zugeordneten Heizungen ausgeschaltet.",
           "leak_active_state": "Legt fest, ob EIN oder AUS bei deinem Sensor eine erkannte Leckage bedeutet.",
           "safety_leak_shutdown": "Aktiviert den verriegelnden Leckage-Sicherheitsstopp. Nach einer Leckage startet Reef Control abgeschaltete Geräte nicht automatisch wieder.",
-          "safety_leak_return_pump": "Schaltet die zugeordnete Rückförderpumpe während des Leckage-Sicherheitsstopps aus.",
-          "safety_leak_skimmer": "Schaltet den zugeordneten Abschäumer während des Leckage-Sicherheitsstopps aus.",
-          "safety_leak_uvc": "Schaltet das zugeordnete UV-C-Gerät während des Leckage-Sicherheitsstopps aus.",
-          "safety_leak_ato": "Schaltet die zugeordnete Nachfüllanlage sofort aus und hält sie während des Leckage-Sicherheitsstopps aus.",
-          "safety_leak_heater": "Schaltet die zugeordnete Heizung während des Leckage-Sicherheitsstopps aus."
+          "safety_leak_return_pump": "Schaltet alle zugeordneten Rückförderpumpen während des Leckage-Sicherheitsstopps aus.",
+          "safety_leak_skimmer": "Schaltet alle zugeordneten Abschäumer während des Leckage-Sicherheitsstopps aus.",
+          "safety_leak_uvc": "Schaltet alle zugeordneten UV-C-Geräte während des Leckage-Sicherheitsstopps aus.",
+          "safety_leak_ato": "Schaltet alle zugeordneten Nachfüllpumpen sofort aus und hält sie während des Leckage-Sicherheitsstopps aus.",
+          "safety_leak_heater": "Schaltet alle zugeordneten Heizungen während des Leckage-Sicherheitsstopps aus."
         }
       },
       "uvc_control": {
         "title": "UV-C-Steuerung",
-        "description": "Steuere die UV-C-Anlage automatisch. Reef Control berücksichtigt dabei Zeitplan, Rückförderpumpe sowie Fütterungs- und Wartungsmodus.",
+        "description": "Steuere alle zugeordneten UV-C-Geräte automatisch. Reef Control berücksichtigt dabei Zeitplan, Rückfördersystem sowie Fütterungs- und Wartungsmodus.",
         "data": {
           "uvc_control_enabled": "UV-C-Steuerung aktivieren",
           "uvc_mode": "Betriebsart",
@@ -302,25 +326,9 @@
         },
         "data_description": {
           "uvc_control_enabled": "Aktiviert die automatische UV-C-Steuerung durch Reef Control.",
-          "uvc_mode": "Dauerbetrieb hält UV-C eingeschaltet, Zeitplan schaltet nur im gewählten Zeitfenster und Aus hält UV-C ausgeschaltet.",
+          "uvc_mode": "Dauerbetrieb hält alle zugeordneten UV-C-Geräte eingeschaltet, Zeitplan schaltet nur im gewählten Zeitfenster und Aus hält sie ausgeschaltet.",
           "uvc_start_time": "Uhrzeit, ab der UV-C im Zeitplanbetrieb laufen soll.",
           "uvc_end_time": "Uhrzeit, zu der UV-C im Zeitplanbetrieb ausgeschaltet wird. Zeiträume über Mitternacht werden unterstützt."
-        }
-      },
-      "redox_limits": {
-        "title": "Redox",
-        "description": "Lege Normalbereich und kritische Grenzen für das Redoxpotential fest.",
-        "data": {
-          "redox_min": "Normalbereich von",
-          "redox_max": "Normalbereich bis",
-          "redox_critical_min": "Kritisch unter",
-          "redox_critical_max": "Kritisch über"
-        },
-        "data_description": {
-          "redox_min": "Unterhalb dieses Wertes liegt Redox außerhalb des gewünschten Normalbereichs.",
-          "redox_max": "Oberhalb dieses Wertes liegt Redox außerhalb des gewünschten Normalbereichs.",
-          "redox_critical_min": "Unterhalb dieses Wertes bewertet Reef Control Redox als kritisch.",
-          "redox_critical_max": "Oberhalb dieses Wertes bewertet Reef Control Redox als kritisch."
         }
       }
     },
