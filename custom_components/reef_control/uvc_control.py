@@ -10,7 +10,7 @@ from .const import *
 
 
 class ReefControlUvcController:
-    """Control UV-C by mode, schedule and aquarium safety state."""
+    """Control one or more UV-C devices by mode, schedule and safety state."""
 
     def __init__(self, hass, entry):
         self.hass = hass
@@ -33,19 +33,22 @@ class ReefControlUvcController:
             self.entry.entry_id, {"entry": self.entry}
         )
 
+    def _uvc_entities(self):
+        return get_entity_list(
+            self.entry.options, CONF_UVC_ENTITIES, CONF_UVC_ENTITY
+        )
+
+    def _return_entities(self):
+        return get_entity_list(
+            self.entry.options, CONF_RETURN_PUMP_ENTITIES, CONF_RETURN_PUMP_ENTITY
+        )
+
     async def async_start(self):
         runtime = self._runtime()
         runtime["uvc_controller"] = self
         runtime["uvc_control_status"] = "Deaktiviert"
 
-        watched = [
-            entity_id
-            for entity_id in (
-                self.entry.options.get(CONF_UVC_ENTITY),
-                self.entry.options.get(CONF_RETURN_PUMP_ENTITY),
-            )
-            if entity_id
-        ]
+        watched = list(dict.fromkeys([*self._uvc_entities(), *self._return_entities()]))
         if watched:
             self._remove_state_listener = async_track_state_change_event(
                 self.hass, watched, self._state_changed
@@ -54,7 +57,6 @@ class ReefControlUvcController:
         self._remove_time_listener = async_track_time_interval(
             self.hass, self._time_tick, timedelta(seconds=30)
         )
-
         await self.async_evaluate()
 
     async def async_stop(self):
@@ -67,8 +69,10 @@ class ReefControlUvcController:
 
     async def _state_changed(self, event):
         entity_id = event.data.get("entity_id")
-        # Do not fight a deliberate manual UV-C switch while controller is disabled.
-        if self.enabled or entity_id == self.entry.options.get(CONF_RETURN_PUMP_ENTITY):
+        # Do not fight deliberate manual UV-C changes while the controller is off.
+        # Return-pump changes still matter for the interlock and therefore trigger
+        # an evaluation even when UV-C automation itself is disabled.
+        if self.enabled or entity_id in self._return_entities():
             await self.async_evaluate()
 
     async def _time_tick(self, now):
@@ -77,30 +81,32 @@ class ReefControlUvcController:
 
     def _set_status(self, status):
         self._status = status
-        self._runtime()["uvc_control_status"] = status
+        runtime = self._runtime()
+        runtime["uvc_control_status"] = status
+        runtime["uvc_entities"] = self._uvc_entities()
 
     async def _set_uvc(self, on):
-        entity_id = self.entry.options.get(CONF_UVC_ENTITY)
-        if not entity_id:
+        entities = self._uvc_entities()
+        if not entities:
             return
-        state = self.hass.states.get(entity_id)
-        if not state or state.state in (STATE_UNKNOWN, STATE_UNAVAILABLE):
-            return
-        already_on = state.state == STATE_ON
-        if already_on == on:
-            self._controlled_on = on
-            return
-        await self.hass.services.async_call(
-            entity_id.split(".", 1)[0],
-            "turn_on" if on else "turn_off",
-            {"entity_id": entity_id},
-            blocking=True,
-        )
+        for entity_id in entities:
+            state = self.hass.states.get(entity_id)
+            if not state or state.state in (STATE_UNKNOWN, STATE_UNAVAILABLE):
+                continue
+            already_on = state.state == STATE_ON
+            if already_on == on:
+                continue
+            await self.hass.services.async_call(
+                entity_id.split(".", 1)[0],
+                "turn_on" if on else "turn_off",
+                {"entity_id": entity_id},
+                blocking=True,
+            )
         self._controlled_on = on
 
     def _return_pump_ok(self):
         # Only enforce this interlock when equipment control explicitly makes
-        # UV-C dependent on the return pump.
+        # UV-C dependent on the return system.
         options = self.entry.options
         if not options.get(
             CONF_EQUIPMENT_CONTROL_ENABLED, DEFAULT_EQUIPMENT_CONTROL_ENABLED
@@ -109,11 +115,16 @@ class ReefControlUvcController:
         if not options.get(CONF_RETURN_MASTER_UVC, DEFAULT_RETURN_MASTER_UVC):
             return True
 
-        entity_id = options.get(CONF_RETURN_PUMP_ENTITY)
-        if not entity_id:
+        entities = self._return_entities()
+        if not entities:
             return False
-        state = self.hass.states.get(entity_id)
-        return bool(state and state.state == STATE_ON)
+        # With redundant return pumps the return system is considered available
+        # as long as at least one configured pump is actually running.
+        return any(
+            (state := self.hass.states.get(entity_id)) is not None
+            and state.state == STATE_ON
+            for entity_id in entities
+        )
 
     @staticmethod
     def _parse_time(value, default):
@@ -145,18 +156,21 @@ class ReefControlUvcController:
 
     async def async_evaluate(self):
         options = self.entry.options
-        entity_id = options.get(CONF_UVC_ENTITY)
+        entities = self._uvc_entities()
 
         if not self.enabled:
             self._set_status("Deaktiviert")
             return
 
-        if not entity_id:
+        if not entities:
             self._set_status("Nicht konfiguriert")
             return
 
-        state = self.hass.states.get(entity_id)
-        if state is None or state.state in (STATE_UNKNOWN, STATE_UNAVAILABLE):
+        states = [self.hass.states.get(entity_id) for entity_id in entities]
+        if any(
+            state is None or state.state in (STATE_UNKNOWN, STATE_UNAVAILABLE)
+            for state in states
+        ):
             self._set_status("UV-C nicht verfügbar")
             return
 
@@ -181,7 +195,6 @@ class ReefControlUvcController:
             return
 
         mode = options.get(CONF_UVC_MODE, DEFAULT_UVC_MODE)
-
         if mode == "off":
             await self._set_uvc(False)
             self._set_status("Aus")

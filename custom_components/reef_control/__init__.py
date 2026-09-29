@@ -17,7 +17,7 @@ from .equipment_control import ReefControlEquipmentController
 from .safety_control import ReefControlSafetyController
 from .uvc_control import ReefControlUvcController
 
-CARD_VERSION = "0.1.10"
+CARD_VERSION = "0.1.11"
 CARD_URL = "/reef_control/reef-control-card.js"
 CARD_RESOURCE_URL = f"{CARD_URL}?v={CARD_VERSION}"
 CARD_FILE = Path(__file__).parent / "www" / "reef-control-card.js"
@@ -125,6 +125,11 @@ async def _register_card(hass):
         )
 
 
+async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Reload once after the user finishes the multi-page options flow."""
+    await hass.config_entries.async_reload(entry.entry_id)
+
+
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     await hass.http.async_register_static_paths(
         [
@@ -153,6 +158,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "tc420_bridge_last_seen": None,
         "tc420_bridge_active_channels": [0.0] * TC420_CHANNEL_COUNT,
     }
+
+    entry.async_on_unload(entry.add_update_listener(_async_options_updated))
 
     equipment = ReefControlEquipmentController(hass, entry)
     safety = ReefControlSafetyController(hass, entry)

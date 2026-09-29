@@ -29,7 +29,7 @@
     "step": {
       "init": {
         "title": "Configure Reef Control",
-        "description": "Choose the area you want to configure.",
+        "description": "Choose an area to edit. Changes stay in this configuration session until you select Save & close.",
         "menu_options": {
           "entities": "Equipment & entities",
           "water_values": "Water values",
@@ -40,31 +40,34 @@
           "ato_control": "Water level control",
           "equipment_control": "Equipment control",
           "safety_control": "Safety control",
-          "uvc_control": "UV-C control"
+          "uvc_control": "UV-C control",
+          "finish": "Save & close"
         }
       },
       "entities": {
         "title": "Equipment & entities",
-        "description": "Assign the Home Assistant entities that control your aquarium equipment.",
+        "description": "Assign one or more Home Assistant entities to each aquarium equipment group. Sensor inputs such as temperature and water level remain configured separately.",
         "data": {
-          "skimmer_entity": "Protein skimmer",
-          "return_pump_entity": "Return pump",
-          "flow_pump_entity": "Flow pump",
-          "uvc_entity": "UV-C sterilizer",
-          "light_entity": "Aquarium lighting",
-          "heater_entity": "Heater",
-          "ato_entity": "Auto top-off (ATO)",
-          "leak_entity": "Leak sensor"
+          "skimmer_entities": "Protein skimmer(s)",
+          "return_pump_entities": "Return pump(s)",
+          "flow_pump_entities": "Flow pump(s)",
+          "uvc_entities": "UV-C device(s)",
+          "light_entities": "Aquarium light(s)",
+          "heater_entities": "Heater(s)",
+          "ato_entities": "Auto top-off (ATO) pump(s)",
+          "calcium_reactor_entities": "Calcium reactor",
+          "leak_entities": "Leak sensor(s)"
         },
         "data_description": {
-          "skimmer_entity": "Entity that switches the protein skimmer on and off.",
-          "return_pump_entity": "Entity that switches the return pump on and off.",
-          "flow_pump_entity": "Entity that switches the circulation or flow pump on and off.",
-          "uvc_entity": "Entity that switches the UV-C sterilizer on and off.",
-          "light_entity": "Entity used to control the aquarium lighting.",
-          "heater_entity": "Entity that switches the aquarium heater. Reef Control can use this entity for automatic temperature control.",
-          "ato_entity": "Entity that switches the automatic top-off pump. Reef Control can use it for automatic water level control.",
-          "leak_entity": "Binary sensor or input boolean that detects water or a leak."
+          "skimmer_entities": "Select all entities that switch your protein skimmer equipment on and off.",
+          "return_pump_entities": "Select all return pumps. With redundant pumps, Reef Control considers the return system running while at least one selected pump is on.",
+          "flow_pump_entities": "Select all circulation / wavemaker pump entities, for example both left and right flow pumps.",
+          "uvc_entities": "Select all entities that switch UV-C equipment on and off.",
+          "light_entities": "Select all entities used to control the aquarium lighting.",
+          "heater_entities": "Select all heater entities. Automatic temperature control switches the selected heaters as one group.",
+          "ato_entities": "Select all entities belonging to the automatic top-off pump group. Automatic water-level control switches the selected pumps as one group.",
+          "calcium_reactor_entities": "Optional: select switchable calcium-reactor equipment. Multiple entities are allowed, for example feed pump, circulation pump or CO₂ valve. Reef Control treats them as one equipment group for feeding/maintenance pauses.",
+          "leak_entities": "Select one or more binary sensors/input booleans that detect water or a leak. A leak is considered detected when any selected sensor is active."
         }
       },
       "water_values": {
@@ -80,9 +83,9 @@
           "salinity_source": "Salinity source"
         },
         "data_description": {
-          "temperature_entity": "Sensor providing the current aquarium water temperature.",
-          "ph_entity": "Sensor providing the current pH value.",
-          "salinity_entity": "Sensor providing the current salinity.",
+          "temperature_entity": "Primary sensor providing the current aquarium water temperature.",
+          "ph_entity": "Primary sensor providing the current pH value.",
+          "salinity_entity": "Primary sensor providing the current salinity.",
           "water_level_entity": "Digital float/optical sensor or numeric water-level sensor. Numeric values can be evaluated as water level in cm.",
           "conductivity_entity": "Electrical conductivity sensor. Reef Control normalizes µS/cm and mS/cm and can calculate salinity from conductivity and temperature.",
           "redox_entity": "Sensor providing oxidation-reduction potential (ORP) in mV.",
@@ -96,7 +99,8 @@
           "temperature_limits": "Temperature",
           "ph_limits": "pH",
           "salinity_limits": "Salinity",
-          "redox_limits": "Redox"
+          "redox_limits": "Redox",
+          "back_to_main": "← Back"
         }
       },
       "temperature_limits": {
@@ -117,7 +121,7 @@
       },
       "ph_limits": {
         "title": "pH limits",
-        "description": "Define the normal range and critical safety limits for pH.",
+        "description": "Define the normal range and critical limits for pH.",
         "data": {
           "ph_min": "Normal minimum",
           "ph_max": "Normal maximum",
@@ -133,7 +137,7 @@
       },
       "salinity_limits": {
         "title": "Salinity limits",
-        "description": "Define the normal range and critical safety limits for salinity.",
+        "description": "Define the normal range and critical limits for salinity.",
         "data": {
           "salinity_min": "Normal minimum",
           "salinity_max": "Normal maximum",
@@ -141,10 +145,26 @@
           "salinity_critical_max": "Critical maximum"
         },
         "data_description": {
-          "salinity_min": "Below this value the salinity is outside the desired normal range.",
-          "salinity_max": "Above this value the salinity is outside the desired normal range.",
-          "salinity_critical_min": "Below this value Reef Control rates the salinity as critical.",
-          "salinity_critical_max": "Above this value Reef Control rates the salinity as critical."
+          "salinity_min": "Below this value salinity is outside the desired normal range.",
+          "salinity_max": "Above this value salinity is outside the desired normal range.",
+          "salinity_critical_min": "Below this value Reef Control rates salinity as critical.",
+          "salinity_critical_max": "Above this value Reef Control rates salinity as critical."
+        }
+      },
+      "redox_limits": {
+        "title": "Redox limits",
+        "description": "Define the normal range and critical limits for oxidation-reduction potential.",
+        "data": {
+          "redox_min": "Normal minimum",
+          "redox_max": "Normal maximum",
+          "redox_critical_min": "Critical minimum",
+          "redox_critical_max": "Critical maximum"
+        },
+        "data_description": {
+          "redox_min": "Below this value ORP is outside the desired normal range.",
+          "redox_max": "Above this value ORP is outside the desired normal range.",
+          "redox_critical_min": "Below this value Reef Control rates ORP as critical.",
+          "redox_critical_max": "Above this value Reef Control rates ORP as critical."
         }
       },
       "operating_modes": {
@@ -153,39 +173,43 @@
         "data": {
           "feeding_duration": "Feeding duration",
           "skimmer_delay": "Skimmer restart delay",
-          "feeding_pause_skimmer": "Pause protein skimmer during feeding",
-          "feeding_pause_return_pump": "Pause return pump during feeding",
-          "feeding_pause_flow_pump": "Pause flow pump during feeding",
+          "feeding_pause_skimmer": "Pause protein skimmer(s) during feeding",
+          "feeding_pause_return_pump": "Pause return pump(s) during feeding",
+          "feeding_pause_flow_pump": "Pause flow pump(s) during feeding",
           "feeding_pause_uvc": "Pause UV-C during feeding",
           "feeding_pause_ato": "Pause auto top-off during feeding",
-          "maintenance_pause_skimmer": "Pause protein skimmer during maintenance",
-          "maintenance_pause_return_pump": "Pause return pump during maintenance",
-          "maintenance_pause_flow_pump": "Pause flow pump during maintenance",
+          "feeding_pause_calcium_reactor": "Pause calcium reactor during feeding",
+          "maintenance_pause_skimmer": "Pause protein skimmer(s) during maintenance",
+          "maintenance_pause_return_pump": "Pause return pump(s) during maintenance",
+          "maintenance_pause_flow_pump": "Pause flow pump(s) during maintenance",
           "maintenance_pause_uvc": "Pause UV-C during maintenance",
           "maintenance_pause_ato": "Pause auto top-off during maintenance",
-          "maintenance_pause_heater": "Pause heater during maintenance",
-          "maintenance_pause_light": "Pause aquarium lighting during maintenance"
+          "maintenance_pause_heater": "Pause heater(s) during maintenance",
+          "maintenance_pause_light": "Pause aquarium lighting during maintenance",
+          "maintenance_pause_calcium_reactor": "Pause calcium reactor during maintenance"
         },
         "data_description": {
           "feeding_duration": "How long feeding mode remains active before it ends automatically.",
-          "skimmer_delay": "Additional delay before the protein skimmer restarts after feeding mode ends.",
-          "feeding_pause_skimmer": "Switch the protein skimmer off while feeding mode is active.",
-          "feeding_pause_return_pump": "Switch the return pump off while feeding mode is active.",
-          "feeding_pause_flow_pump": "Switch the flow pump off while feeding mode is active.",
-          "feeding_pause_uvc": "Switch UV-C off while feeding mode is active.",
-          "feeding_pause_ato": "Switch automatic top-off off while feeding mode is active.",
-          "maintenance_pause_skimmer": "Switch the protein skimmer off while maintenance mode is active.",
-          "maintenance_pause_return_pump": "Switch the return pump off while maintenance mode is active.",
-          "maintenance_pause_flow_pump": "Switch the flow pump off while maintenance mode is active.",
-          "maintenance_pause_uvc": "Switch UV-C off while maintenance mode is active.",
-          "maintenance_pause_ato": "Switch automatic top-off off while maintenance mode is active.",
-          "maintenance_pause_heater": "Switch the heater off while maintenance mode is active. Automatic temperature control is paused during maintenance.",
-          "maintenance_pause_light": "Switch aquarium lighting off while maintenance mode is active."
+          "skimmer_delay": "Additional delay before all previously running protein skimmers restart after feeding mode ends.",
+          "feeding_pause_skimmer": "Switch all assigned protein skimmers off while feeding mode is active.",
+          "feeding_pause_return_pump": "Switch all assigned return pumps off while feeding mode is active.",
+          "feeding_pause_flow_pump": "Switch all assigned flow pumps off while feeding mode is active.",
+          "feeding_pause_uvc": "Switch all assigned UV-C devices off while feeding mode is active.",
+          "feeding_pause_ato": "Pause the assigned automatic top-off pump group while feeding mode is active.",
+          "feeding_pause_calcium_reactor": "Switch all assigned calcium-reactor entities off while feeding mode is active. Disabled by default.",
+          "maintenance_pause_skimmer": "Switch all assigned protein skimmers off while maintenance mode is active.",
+          "maintenance_pause_return_pump": "Switch all assigned return pumps off while maintenance mode is active.",
+          "maintenance_pause_flow_pump": "Switch all assigned flow pumps off while maintenance mode is active.",
+          "maintenance_pause_uvc": "Switch all assigned UV-C devices off while maintenance mode is active.",
+          "maintenance_pause_ato": "Pause the assigned automatic top-off pump group while maintenance mode is active.",
+          "maintenance_pause_heater": "Switch all assigned heaters off while maintenance mode is active. Automatic temperature control is paused during maintenance.",
+          "maintenance_pause_light": "Switch all assigned aquarium lights off while maintenance mode is active.",
+          "maintenance_pause_calcium_reactor": "Switch all assigned calcium-reactor entities off while maintenance mode is active. Disabled by default."
         }
       },
       "temperature_control": {
         "title": "Temperature control",
-        "description": "Configure automatic heater control. A temperature sensor and heater must be assigned under Equipment & entities / Water values.",
+        "description": "Configure automatic heater control. A temperature sensor and at least one heater must be assigned under Equipment & entities / Water values.",
         "data": {
           "temperature_control_enabled": "Enable temperature control",
           "temperature_target": "Target temperature",
@@ -195,10 +219,10 @@
         },
         "data_description": {
           "temperature_control_enabled": "Enables Reef Control's automatic heater control.",
-          "temperature_target": "Temperature Reef Control should maintain. The heater switches off when this temperature is reached.",
+          "temperature_target": "Temperature Reef Control should maintain. All selected heaters switch off when this temperature is reached.",
           "temperature_hysteresis": "Prevents frequent switching. Example: with 25.0 °C target and 0.3 °C hysteresis, heating starts at 24.7 °C or below and stops at 25.0 °C or above.",
-          "temperature_min_on_time": "After switching on, the heater must remain on for at least this long before Reef Control may switch it off.",
-          "temperature_min_off_time": "After switching off, Reef Control waits at least this long before the heater may be switched on again."
+          "temperature_min_on_time": "After switching on, the heater group must remain on for at least this long before Reef Control may switch it off.",
+          "temperature_min_off_time": "After switching off, Reef Control waits at least this long before the heater group may be switched on again."
         }
       },
       "reef_icp": {
@@ -217,7 +241,7 @@
       },
       "ato_control": {
         "title": "Water level control",
-        "description": "Configure automatic top-off. A water-level sensor and ATO pump must be assigned first.",
+        "description": "Configure automatic top-off. A water-level sensor and at least one ATO pump must be assigned first.",
         "data": {
           "ato_control_enabled": "Enable water level control",
           "ato_low_state": "State meaning water level is low",
@@ -231,8 +255,8 @@
         "data_description": {
           "ato_control_enabled": "Enables automatic top-off control by Reef Control.",
           "ato_low_state": "Choose whether ON or OFF from your sensor means that the water level is too low.",
-          "ato_confirm_delay": "The water level must remain low for this long before the pump starts. This filters waves and brief sensor changes.",
-          "ato_max_runtime": "Hard safety limit for one top-off cycle. When exceeded, the pump is switched off and the controller locks until you turn water level control off and on again.",
+          "ato_confirm_delay": "The water level must remain low for this long before the pump group starts. This filters waves and brief sensor changes.",
+          "ato_max_runtime": "Hard safety limit for one top-off cycle. When exceeded, all selected ATO pumps are switched off and the controller locks until you turn water level control off and on again.",
           "ato_cooldown": "Minimum waiting time after a completed top-off before another top-off may start.",
           "water_level_mode": "Auto lets Reef Control distinguish digital sensors from numeric cm values. You can override the type if needed.",
           "water_level_low_cm": "For a numeric water level, this value or lower is considered low.",
@@ -241,26 +265,26 @@
       },
       "equipment_control": {
         "title": "Equipment control",
-        "description": "Link the return pump, protein skimmer, UV-C and ATO logically. If the return pump stops, Reef Control can safely pause dependent equipment and restart it in a controlled sequence.",
+        "description": "Link return pumps, protein skimmers, UV-C, ATO and optionally flow pumps logically. If the complete return system stops, Reef Control can safely pause dependent equipment and restart it in a controlled sequence.",
         "data": {
           "equipment_control_enabled": "Enable equipment control",
-          "return_master_skimmer": "Make skimmer depend on return pump",
-          "return_master_uvc": "Make UV-C depend on return pump",
-          "return_master_ato": "Make ATO depend on return pump",
+          "return_master_skimmer": "Make skimmer(s) depend on return system",
+          "return_master_uvc": "Make UV-C depend on return system",
+          "return_master_ato": "Make ATO depend on return system",
           "equipment_skimmer_delay": "Skimmer restart delay",
           "equipment_uvc_delay": "UV-C restart delay",
-          "return_master_flow": "Make flow pump depend on return pump",
+          "return_master_flow": "Make flow pump(s) depend on return system",
           "equipment_flow_delay": "Flow pump restart delay"
         },
         "data_description": {
           "equipment_control_enabled": "Enables cross-device safety and restart logic.",
-          "return_master_skimmer": "Stops the protein skimmer whenever the return pump is not running and restarts it after the configured delay.",
-          "return_master_uvc": "Stops UV-C when return flow is unavailable and restarts it after the configured delay.",
-          "return_master_ato": "Blocks the ATO pump while the return pump is off. Automatic water-level control is re-evaluated after restart.",
-          "equipment_skimmer_delay": "Delay after the return pump starts before a controller-paused skimmer is restarted.",
-          "equipment_uvc_delay": "Delay after the return pump starts before controller-paused UV-C is restarted.",
-          "return_master_flow": "Optional: Stops the flow pump with the return pump and restarts it in a controlled way. Disabled by default because display-tank circulation often should keep running.",
-          "equipment_flow_delay": "Delay after the return pump starts before a controller-paused flow pump restarts."
+          "return_master_skimmer": "Stops all selected protein skimmers whenever no selected return pump is running and restarts previously running skimmers after the configured delay.",
+          "return_master_uvc": "Stops all selected UV-C devices when return flow is unavailable and restarts them after the configured delay.",
+          "return_master_ato": "Blocks the ATO pump group while no return pump is running. Automatic water-level control is re-evaluated after restart.",
+          "equipment_skimmer_delay": "Delay after the return system starts before controller-paused skimmers are restarted.",
+          "equipment_uvc_delay": "Delay after the return system starts before controller-paused UV-C devices are restarted.",
+          "return_master_flow": "Optional: Stops all selected flow pumps with the return system and restarts them in a controlled way. Disabled by default because display-tank circulation often should keep running.",
+          "equipment_flow_delay": "Delay after the return system starts before controller-paused flow pumps restart."
         }
       },
       "safety_control": {
@@ -268,32 +292,32 @@
         "description": "Central aquarium protection. Safety rules take priority over normal timers and control logic. A detected leak remains latched until safety control is deliberately switched off and on again.",
         "data": {
           "safety_control_enabled": "Enable safety control",
-          "safety_heater_high_temp": "Immediately switch heater off at critical high temperature",
-          "safety_heater_sensor_fail": "Switch heater off if temperature sensor fails",
+          "safety_heater_high_temp": "Immediately switch heater(s) off at critical high temperature",
+          "safety_heater_sensor_fail": "Switch heater(s) off if temperature sensor fails",
           "leak_active_state": "State meaning leak detected",
           "safety_leak_shutdown": "Enable emergency shutdown on leak",
-          "safety_leak_return_pump": "Switch return pump off on leak",
-          "safety_leak_skimmer": "Switch skimmer off on leak",
+          "safety_leak_return_pump": "Switch return pump(s) off on leak",
+          "safety_leak_skimmer": "Switch skimmer(s) off on leak",
           "safety_leak_uvc": "Switch UV-C off on leak",
           "safety_leak_ato": "Switch auto top-off off on leak",
-          "safety_leak_heater": "Switch heater off on leak"
+          "safety_leak_heater": "Switch heater(s) off on leak"
         },
         "data_description": {
           "safety_control_enabled": "Enables Reef Control central safety interlocks.",
-          "safety_heater_high_temp": "If temperature reaches the configured critical maximum, the heater is switched off immediately without waiting for minimum run time.",
-          "safety_heater_sensor_fail": "Fail-safe: if the configured temperature sensor is unavailable or invalid, an active heater is switched off.",
+          "safety_heater_high_temp": "If temperature reaches the configured critical maximum, all assigned heaters are switched off immediately without waiting for minimum run time.",
+          "safety_heater_sensor_fail": "Fail-safe: if the configured temperature sensor is unavailable or invalid, all assigned heaters are switched off.",
           "leak_active_state": "Choose whether ON or OFF from your sensor means that a leak has been detected.",
           "safety_leak_shutdown": "Enables the latched leak safety stop. After a leak, Reef Control does not automatically restart equipment it switched off.",
-          "safety_leak_return_pump": "Switches the assigned return pump off during a leak safety stop.",
-          "safety_leak_skimmer": "Switches the assigned protein skimmer off during a leak safety stop.",
-          "safety_leak_uvc": "Switches the assigned UV-C device off during a leak safety stop.",
-          "safety_leak_ato": "Immediately switches the assigned auto top-off off and keeps it off during a leak safety stop.",
-          "safety_leak_heater": "Switches the assigned heater off during a leak safety stop."
+          "safety_leak_return_pump": "Switches all assigned return pumps off during a leak safety stop.",
+          "safety_leak_skimmer": "Switches all assigned protein skimmers off during a leak safety stop.",
+          "safety_leak_uvc": "Switches all assigned UV-C devices off during a leak safety stop.",
+          "safety_leak_ato": "Immediately switches all assigned auto top-off pumps off and keeps them off during a leak safety stop.",
+          "safety_leak_heater": "Switches all assigned heaters off during a leak safety stop."
         }
       },
       "uvc_control": {
         "title": "UV-C control",
-        "description": "Control the UV-C sterilizer automatically. Reef Control respects the schedule, return pump and feeding/maintenance modes.",
+        "description": "Control all assigned UV-C devices automatically. Reef Control respects the schedule, return system and feeding/maintenance modes.",
         "data": {
           "uvc_control_enabled": "Enable UV-C control",
           "uvc_mode": "Operating mode",
@@ -302,25 +326,9 @@
         },
         "data_description": {
           "uvc_control_enabled": "Enables automatic UV-C control by Reef Control.",
-          "uvc_mode": "Continuous keeps UV-C on, Schedule runs it only in the selected window, and Off keeps it switched off.",
+          "uvc_mode": "Continuous keeps all assigned UV-C devices on, Schedule runs them only in the selected window, and Off keeps them switched off.",
           "uvc_start_time": "Time at which UV-C should start in schedule mode.",
           "uvc_end_time": "Time at which UV-C should stop in schedule mode. Overnight schedules are supported."
-        }
-      },
-      "redox_limits": {
-        "title": "Redox limits",
-        "description": "Define the normal range and critical limits for oxidation-reduction potential.",
-        "data": {
-          "redox_min": "Normal minimum",
-          "redox_max": "Normal maximum",
-          "redox_critical_min": "Critical minimum",
-          "redox_critical_max": "Critical maximum"
-        },
-        "data_description": {
-          "redox_min": "Below this value ORP is outside the desired normal range.",
-          "redox_max": "Above this value ORP is outside the desired normal range.",
-          "redox_critical_min": "Below this value Reef Control rates ORP as critical.",
-          "redox_critical_max": "Above this value Reef Control rates ORP as critical."
         }
       }
     },

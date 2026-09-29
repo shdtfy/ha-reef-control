@@ -1,7 +1,12 @@
 """Constants for Reef Control."""
 
+from __future__ import annotations
+
+from collections.abc import Mapping
+from typing import Any
+
 DOMAIN = "reef_control"
-VERSION = "0.12.0"
+VERSION = "0.12.1"
 
 DEFAULT_AQUARIUM_NAME = "My Reef"
 
@@ -70,6 +75,8 @@ DEFAULT_REDOX_CRITICAL_MIN = 150.0
 DEFAULT_REDOX_CRITICAL_MAX = 500.0
 DEFAULT_SALINITY_SOURCE = "auto"
 
+# Legacy single-entity option keys. Kept for transparent migration/downgrade
+# compatibility. New code stores and consumes the plural keys below.
 CONF_SKIMMER_ENTITY = "skimmer_entity"
 CONF_RETURN_PUMP_ENTITY = "return_pump_entity"
 CONF_FLOW_PUMP_ENTITY = "flow_pump_entity"
@@ -77,6 +84,93 @@ CONF_UVC_ENTITY = "uvc_entity"
 CONF_LIGHT_ENTITY = "light_entity"
 CONF_HEATER_ENTITY = "heater_entity"
 CONF_ATO_ENTITY = "ato_entity"
+
+# Multi-entity equipment option keys (v0.12.1+)
+CONF_SKIMMER_ENTITIES = "skimmer_entities"
+CONF_RETURN_PUMP_ENTITIES = "return_pump_entities"
+CONF_FLOW_PUMP_ENTITIES = "flow_pump_entities"
+CONF_UVC_ENTITIES = "uvc_entities"
+CONF_LIGHT_ENTITIES = "light_entities"
+CONF_HEATER_ENTITIES = "heater_entities"
+CONF_ATO_ENTITIES = "ato_entities"
+CONF_LEAK_ENTITIES = "leak_entities"
+CONF_CALCIUM_REACTOR_ENTITIES = "calcium_reactor_entities"
+
+EQUIPMENT_ENTITY_OPTION_PAIRS = (
+    (CONF_SKIMMER_ENTITIES, CONF_SKIMMER_ENTITY),
+    (CONF_RETURN_PUMP_ENTITIES, CONF_RETURN_PUMP_ENTITY),
+    (CONF_FLOW_PUMP_ENTITIES, CONF_FLOW_PUMP_ENTITY),
+    (CONF_UVC_ENTITIES, CONF_UVC_ENTITY),
+    (CONF_LIGHT_ENTITIES, CONF_LIGHT_ENTITY),
+    (CONF_HEATER_ENTITIES, CONF_HEATER_ENTITY),
+    (CONF_ATO_ENTITIES, CONF_ATO_ENTITY),
+    (CONF_LEAK_ENTITIES, CONF_LEAK_ENTITY),
+)
+
+
+def _normalize_entity_values(raw: Any) -> list[str]:
+    """Return a stable, de-duplicated list of entity IDs."""
+    if raw is None:
+        return []
+    if isinstance(raw, str):
+        values = [raw]
+    elif isinstance(raw, (list, tuple, set)):
+        values = list(raw)
+    else:
+        return []
+
+    result: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        if not isinstance(value, str):
+            continue
+        entity_id = value.strip()
+        if not entity_id or entity_id in seen:
+            continue
+        seen.add(entity_id)
+        result.append(entity_id)
+    return result
+
+
+def get_entity_list(
+    options: Mapping[str, Any], plural_key: str, legacy_key: str | None = None
+) -> list[str]:
+    """Read an equipment group, with fallback to a legacy single entity."""
+    if plural_key in options:
+        return _normalize_entity_values(options.get(plural_key))
+    if legacy_key:
+        return _normalize_entity_values(options.get(legacy_key))
+    return []
+
+
+def get_first_entity(
+    options: Mapping[str, Any], plural_key: str, legacy_key: str | None = None
+) -> str | None:
+    """Return the first configured entity in a group."""
+    values = get_entity_list(options, plural_key, legacy_key)
+    return values[0] if values else None
+
+
+def sync_legacy_entity_options(options: dict[str, Any]) -> dict[str, Any]:
+    """Mirror each new equipment list to its old single-entity option key.
+
+    This keeps existing dashboard/card code and older Reef Control versions usable
+    with the first selected device while v0.12.1+ uses the full list.
+    """
+    for plural_key, legacy_key in EQUIPMENT_ENTITY_OPTION_PAIRS:
+        if plural_key not in options:
+            legacy = _normalize_entity_values(options.get(legacy_key))
+            if legacy:
+                options[plural_key] = legacy
+
+        values = _normalize_entity_values(options.get(plural_key))
+        options[plural_key] = values
+        if values:
+            options[legacy_key] = values[0]
+        else:
+            options.pop(legacy_key, None)
+    return options
+
 
 CONF_TEMPERATURE_CONTROL_ENABLED = "temperature_control_enabled"
 CONF_TEMPERATURE_TARGET = "temperature_target"
@@ -158,6 +252,7 @@ CONF_FEEDING_PAUSE_RETURN_PUMP = "feeding_pause_return_pump"
 CONF_FEEDING_PAUSE_FLOW_PUMP = "feeding_pause_flow_pump"
 CONF_FEEDING_PAUSE_UVC = "feeding_pause_uvc"
 CONF_FEEDING_PAUSE_ATO = "feeding_pause_ato"
+CONF_FEEDING_PAUSE_CALCIUM_REACTOR = "feeding_pause_calcium_reactor"
 DEFAULT_FEEDING_DURATION = 10
 DEFAULT_SKIMMER_DELAY = 5
 
@@ -168,6 +263,7 @@ CONF_MAINTENANCE_PAUSE_UVC = "maintenance_pause_uvc"
 CONF_MAINTENANCE_PAUSE_ATO = "maintenance_pause_ato"
 CONF_MAINTENANCE_PAUSE_HEATER = "maintenance_pause_heater"
 CONF_MAINTENANCE_PAUSE_LIGHT = "maintenance_pause_light"
+CONF_MAINTENANCE_PAUSE_CALCIUM_REACTOR = "maintenance_pause_calcium_reactor"
 
 # TC420 / SIMU-LUX SEA WATER lighting bridge
 TC420_CHANNEL_COUNT = 4
