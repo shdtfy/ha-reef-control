@@ -43,7 +43,8 @@
           "equipment_control": "Techniksteuerung",
           "safety_control": "Sicherheitssteuerung",
           "uvc_control": "UV-C-Steuerung",
-          "finish": "Speichern & schließen"
+          "finish": "Speichern & schließen",
+          "uvc_maintenance": "UV-C-Brennerwartung"
         }
       },
       "entities": {
@@ -413,12 +414,39 @@
           "calcium_reactor_ph_entity": "pH-Sensor im Reaktor. Er ist für eine spätere ausfallsichere CO₂-Regelung vorgesehen.",
           "calcium_reactor_co2_entity": "Schalter oder Input Boolean für das CO₂-Magnetventil. v0.12.2 schaltet es noch nicht automatisch anhand des pH-Werts."
         }
+      },
+      "uvc_maintenance": {
+        "title": "UV-C-Brennerwartung",
+        "description": "Wähle das UV-C-Gerät aus, dessen Brennerlebensdauer du einstellen möchtest.",
+        "data": {
+          "uvc_lamp_target": "UV-C-Gerät"
+        }
+      },
+      "uvc_maintenance_settings": {
+        "title": "Brennerwartung einstellen",
+        "description": "Wartung für {device}. Bei Betriebsstunden zählt nur die tatsächliche Einschaltzeit der zugeordneten Steckdose. Bei Kalendertagen zählt das Alter seit dem Brennerwechsel unabhängig von der Einschaltzeit. Ändere beim Wechsel der Methode auch die Zahlenwerte.",
+        "data": {
+          "uvc_lamp_enabled": "Brennerwartung aktiv",
+          "uvc_lamp_name": "Bezeichnung des Brenners",
+          "uvc_lamp_method": "Intervall nach",
+          "uvc_lamp_interval": "Intervall (Stunden oder Tage)",
+          "uvc_lamp_warning": "Vorwarnung (Stunden oder Tage)"
+        },
+        "data_description": {
+          "uvc_lamp_interval": "Standard: 8.000 Betriebsstunden. Für Kalendertage z. B. 365 eingeben.",
+          "uvc_lamp_warning": "Standard: 500 Betriebsstunden. Bei Kalendertagen z. B. 30 Tage."
+        }
+      },
+      "uvc_maintenance_unavailable": {
+        "title": "Keine UV-C-Geräte",
+        "description": "Bitte zuerst unter Geräte & Entitäten ein UV-C-Gerät zuordnen."
       }
     },
     "error": {
       "invalid_limits": "Grenzwerte prüfen: kritisch min. ≤ normal min. < normal max. ≤ kritisch max.",
       "invalid_aquarium_name": "Bitte einen Aquariumname eingeben.",
-      "invalid_volume": "Das Netto-Wasservolumen muss mindestens 1 Liter betragen."
+      "invalid_volume": "Das Netto-Wasservolumen muss mindestens 1 Liter betragen.",
+      "invalid_maintenance_interval": "Das Intervall muss positiv sein und die Vorwarnung muss kleiner als das Intervall sein."
     }
   },
   "entity": {
