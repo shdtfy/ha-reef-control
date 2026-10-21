@@ -70,6 +70,7 @@ class ReefControlOptionsFlow(config_entries.OptionsFlow):
     def __init__(self, config_entry):
         self._config_entry = config_entry
         self._pending_options = dict(config_entry.options)
+        self._uvc_maintenance_target = None
         sync_legacy_entity_options(self._pending_options)
         self._pending_profile = {
             CONF_AQUARIUM_NAME: get_profile_value(
@@ -149,6 +150,7 @@ class ReefControlOptionsFlow(config_entries.OptionsFlow):
                 "temperature_control",
                 "ato_control",
                 "uvc_control",
+                "uvc_maintenance",
                 "equipment_control",
                 "safety_control",
                 "reef_icp",
@@ -447,6 +449,98 @@ class ReefControlOptionsFlow(config_entries.OptionsFlow):
             ): selector.TimeSelector(),
         }
         return self.async_show_form(step_id="uvc_control", data_schema=vol.Schema(fields))
+
+    async def async_step_uvc_maintenance(self, user_input=None) -> FlowResult:
+        """Choose a UV-C device; maintenance settings are independent per device."""
+        devices = get_entity_list(self._options, CONF_UVC_ENTITIES, CONF_UVC_ENTITY)
+        if not devices:
+            return self.async_show_form(
+                step_id="uvc_maintenance_unavailable", data_schema=vol.Schema({})
+            )
+        if user_input is not None:
+            target = user_input.get("uvc_lamp_target")
+            if target in devices:
+                self._uvc_maintenance_target = target
+                return await self.async_step_uvc_maintenance_settings()
+        if len(devices) == 1:
+            self._uvc_maintenance_target = devices[0]
+            return await self.async_step_uvc_maintenance_settings()
+        choices = [
+            selector.SelectOptionDict(
+                value=entity_id,
+                label=self.hass.states.get(entity_id).attributes.get("friendly_name", entity_id)
+                if self.hass.states.get(entity_id) else entity_id,
+            )
+            for entity_id in devices
+        ]
+        return self.async_show_form(
+            step_id="uvc_maintenance",
+            data_schema=vol.Schema({
+                vol.Required("uvc_lamp_target"):
+                    selector.SelectSelector(selector.SelectSelectorConfig(
+                        options=choices, mode=selector.SelectSelectorMode.DROPDOWN,
+                    )),
+            }),
+        )
+
+    async def async_step_uvc_maintenance_unavailable(self, user_input=None) -> FlowResult:
+        if user_input is not None:
+            return await self.async_step_init()
+        return self.async_show_form(
+            step_id="uvc_maintenance_unavailable", data_schema=vol.Schema({})
+        )
+
+    async def async_step_uvc_maintenance_settings(self, user_input=None) -> FlowResult:
+        target = self._uvc_maintenance_target
+        devices = get_entity_list(self._options, CONF_UVC_ENTITIES, CONF_UVC_ENTITY)
+        if target not in devices:
+            return await self.async_step_uvc_maintenance()
+        mapping = dict(self._options.get(CONF_UVC_LAMP_MAINTENANCE, {}) or {})
+        settings = dict(mapping.get(target, {}) or {})
+        default_name = (self.hass.states.get(target).attributes.get("friendly_name", target)
+                        if self.hass.states.get(target) else target)
+        if user_input is not None:
+            method = user_input.get(CONF_UVC_LAMP_METHOD, DEFAULT_UVC_LAMP_METHOD)
+            interval = int(user_input.get(CONF_UVC_LAMP_INTERVAL, DEFAULT_UVC_LAMP_INTERVAL_HOURS))
+            warning = int(user_input.get(CONF_UVC_LAMP_WARNING, DEFAULT_UVC_LAMP_WARNING_HOURS))
+            if method not in ("hours", "days") or not (1 <= interval <= 100000) or not (0 <= warning < interval):
+                errors = {"base": "invalid_maintenance_interval"}
+            else:
+                mapping[target] = {
+                    "enabled": bool(user_input.get(CONF_UVC_LAMP_ENABLED, True)),
+                    "method": method,
+                    "interval": interval,
+                    "warning": warning,
+                    "name": str(user_input.get(CONF_UVC_LAMP_NAME) or default_name).strip()[:100],
+                }
+                self._apply({CONF_UVC_LAMP_MAINTENANCE: mapping})
+                self._uvc_maintenance_target = None
+                return await self.async_step_init()
+        else:
+            errors = {}
+        methods = [
+            selector.SelectOptionDict(value="hours", label="Betriebsstunden"),
+            selector.SelectOptionDict(value="days", label="Kalendertage"),
+        ]
+        fields = {
+            vol.Optional(CONF_UVC_LAMP_ENABLED, default=settings.get("enabled", True)): bool,
+            vol.Optional(CONF_UVC_LAMP_NAME, description={"suggested_value": settings.get("name", default_name)}):
+                selector.TextSelector(),
+            vol.Optional(CONF_UVC_LAMP_METHOD, default=settings.get("method", DEFAULT_UVC_LAMP_METHOD)):
+                selector.SelectSelector(selector.SelectSelectorConfig(
+                    options=methods, mode=selector.SelectSelectorMode.DROPDOWN,
+                )),
+        }
+        for key, default in (
+            (CONF_UVC_LAMP_INTERVAL, settings.get("interval", DEFAULT_UVC_LAMP_INTERVAL_HOURS)),
+            (CONF_UVC_LAMP_WARNING, settings.get("warning", DEFAULT_UVC_LAMP_WARNING_HOURS)),
+        ):
+            fkey, val = self._number(key, default, 0 if key == CONF_UVC_LAMP_WARNING else 1, 100000, 1)
+            fields[fkey] = val
+        return self.async_show_form(
+            step_id="uvc_maintenance_settings", data_schema=vol.Schema(fields), errors=errors,
+            description_placeholders={"device": target},
+        )
 
     async def async_step_equipment_control(self, user_input=None) -> FlowResult:
         if user_input is not None:

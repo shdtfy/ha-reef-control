@@ -43,7 +43,8 @@
           "equipment_control": "Equipment control",
           "safety_control": "Safety control",
           "uvc_control": "UV-C control",
-          "finish": "Save & close"
+          "finish": "Save & close",
+          "uvc_maintenance": "UV-C lamp maintenance"
         }
       },
       "entities": {
@@ -413,12 +414,39 @@
           "calcium_reactor_ph_entity": "pH sensor inside the reactor. This is reserved for a future fail-safe CO₂ controller.",
           "calcium_reactor_co2_entity": "Switch or input boolean used for the CO₂ solenoid. v0.12.2 does not automatically switch it from pH yet."
         }
+      },
+      "uvc_maintenance": {
+        "title": "UV-C lamp maintenance",
+        "description": "Choose the UV-C device whose lamp lifetime you want to configure.",
+        "data": {
+          "uvc_lamp_target": "UV-C device"
+        }
+      },
+      "uvc_maintenance_settings": {
+        "title": "Configure lamp maintenance",
+        "description": "Lamp maintenance for {device}. Operating hours count only when the assigned switch is on; calendar days count from the replacement date, regardless of switch state. When changing methods, adjust numeric values as well.",
+        "data": {
+          "uvc_lamp_enabled": "Enable lamp maintenance",
+          "uvc_lamp_name": "Lamp name",
+          "uvc_lamp_method": "Maintenance interval based on",
+          "uvc_lamp_interval": "Interval (hours or days)",
+          "uvc_lamp_warning": "Warning before due (hours or days)"
+        },
+        "data_description": {
+          "uvc_lamp_interval": "Default: 8,000 operating hours. For calendar days enter e.g. 365.",
+          "uvc_lamp_warning": "Default: 500 operating hours. For calendar days enter e.g. 30 days."
+        }
+      },
+      "uvc_maintenance_unavailable": {
+        "title": "No UV-C devices",
+        "description": "Assign a UV-C device in Equipment & entities first."
       }
     },
     "error": {
       "invalid_limits": "Check the limits: critical minimum ≤ normal minimum < normal maximum ≤ critical maximum.",
       "invalid_aquarium_name": "Enter an aquarium name.",
-      "invalid_volume": "Net water volume must be at least 1 litre."
+      "invalid_volume": "Net water volume must be at least 1 litre.",
+      "invalid_maintenance_interval": "Interval must be positive and warning must be less than the interval."
     }
   },
   "entity": {

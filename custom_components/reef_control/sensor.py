@@ -12,6 +12,7 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.event import async_track_time_interval
 
 from .const import *
+from .uvc_maintenance import uvc_maintenance_key
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
@@ -33,6 +34,10 @@ async def async_setup_entry(hass, entry, async_add_entities):
             ReefControlActiveAlarmsSensor(hass, entry),
             ReefControlAtoStatisticsSensor(hass, entry),
             ReefControlWaterLevelSensor(hass, entry),
+            *[ReefControlUvcLampHoursSensor(hass, entry, entity_id)
+              for entity_id in get_entity_list(entry.options, CONF_UVC_ENTITIES, CONF_UVC_ENTITY)],
+            *[ReefControlUvcLampStatusSensor(hass, entry, entity_id)
+              for entity_id in get_entity_list(entry.options, CONF_UVC_ENTITIES, CONF_UVC_ENTITY)],
         ]
     )
 
@@ -1286,3 +1291,46 @@ class ReefControlWaterLevelSensor(ReefControlRuntimeSensor):
         water_level.pop("value", None)
         water_level.pop("unit", None)
         return water_level
+
+
+class ReefControlUvcLampHoursSensor(ReefControlRuntimeSensor):
+    """Operating hours of one UV-C lamp, not an all-time increasing meter."""
+    _attr_icon = "mdi:timer-outline"
+    _attr_native_unit_of_measurement = "h"
+
+    def __init__(self, hass, entry, entity_id):
+        super().__init__(hass, entry)
+        self.uvc_entity_id = entity_id
+        self._attr_unique_id = f"{entry.entry_id}_uvc_lamp_hours_{uvc_maintenance_key(entity_id)}"
+        self._attr_name = f"UV-C Betriebsstunden {entity_id.split('.', 1)[-1]}"
+
+    @property
+    def native_value(self):
+        manager = self._runtime().get("uvc_maintenance")
+        return round(manager.summary(self.uvc_entity_id)["hours"], 2) if manager else 0
+
+    @property
+    def extra_state_attributes(self):
+        return {"uvc_entity_id": self.uvc_entity_id}
+
+
+class ReefControlUvcLampStatusSensor(ReefControlRuntimeSensor):
+    """Maintenance indicator and history for one UV-C device."""
+    _attr_icon = "mdi:lightbulb-alert-outline"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, hass, entry, entity_id):
+        super().__init__(hass, entry)
+        self.uvc_entity_id = entity_id
+        self._attr_unique_id = f"{entry.entry_id}_uvc_lamp_status_{uvc_maintenance_key(entity_id)}"
+        self._attr_name = f"UV-C Brennerwartung {entity_id.split('.', 1)[-1]}"
+
+    @property
+    def native_value(self):
+        manager = self._runtime().get("uvc_maintenance")
+        return manager.summary(self.uvc_entity_id)["status"] if manager else "Unbekannt"
+
+    @property
+    def extra_state_attributes(self):
+        manager = self._runtime().get("uvc_maintenance")
+        return manager.summary(self.uvc_entity_id) if manager else {"uvc_entity_id": self.uvc_entity_id}

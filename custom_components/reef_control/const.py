@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from typing import Any
 
 DOMAIN = "reef_control"
-VERSION = "0.12.2"
+VERSION = "0.12.3"
 
 DEFAULT_AQUARIUM_NAME = "My Reef"
 
@@ -316,6 +316,20 @@ DEFAULT_SAFETY_LEAK_SKIMMER = True
 DEFAULT_SAFETY_LEAK_UVC = True
 DEFAULT_SAFETY_LEAK_ATO = True
 DEFAULT_SAFETY_LEAK_HEATER = True
+
+# UV-C lamp maintenance (per assigned UV-C switch, independent of its control mode)
+CONF_UVC_LAMP_MAINTENANCE = "uvc_lamp_maintenance"
+CONF_UVC_LAMP_METHOD = "uvc_lamp_method"
+CONF_UVC_LAMP_INTERVAL = "uvc_lamp_interval"
+CONF_UVC_LAMP_WARNING = "uvc_lamp_warning"
+CONF_UVC_LAMP_NAME = "uvc_lamp_name"
+CONF_UVC_LAMP_ENABLED = "uvc_lamp_enabled"
+DEFAULT_UVC_LAMP_METHOD = "hours"
+DEFAULT_UVC_LAMP_INTERVAL_HOURS = 8000
+DEFAULT_UVC_LAMP_INTERVAL_DAYS = 365
+DEFAULT_UVC_LAMP_WARNING_HOURS = 500
+DEFAULT_UVC_LAMP_WARNING_DAYS = 30
+EVENT_UVC_LAMP_MAINTENANCE = "reef_control_uvc_lamp_maintenance"
 
 # UV-C control
 CONF_UVC_CONTROL_ENABLED = "uvc_control_enabled"

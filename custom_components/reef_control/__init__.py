@@ -22,8 +22,9 @@ from .const import (
 from .equipment_control import ReefControlEquipmentController
 from .safety_control import ReefControlSafetyController
 from .uvc_control import ReefControlUvcController
+from .uvc_maintenance import ReefControlUvcMaintenance
 
-CARD_VERSION = "0.1.12"
+CARD_VERSION = "0.1.13"
 CARD_URL = "/reef_control/reef-control-card.js"
 CARD_RESOURCE_URL = f"{CARD_URL}?v={CARD_VERSION}"
 CARD_FILE = Path(__file__).parent / "www" / "reef-control-card.js"
@@ -196,6 +197,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     safety = ReefControlSafetyController(hass, entry)
     uvc = ReefControlUvcController(hass, entry)
     alarm = ReefControlAlarmController(hass, entry)
+    uvc_maintenance = ReefControlUvcMaintenance(hass, entry)
 
     hass.data[DOMAIN][entry.entry_id].update(
         {
@@ -203,9 +205,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "safety_controller": safety,
             "uvc_controller": uvc,
             "alarm_controller": alarm,
+            "uvc_maintenance": uvc_maintenance,
         }
     )
 
+    await uvc_maintenance.async_start()
     await hass.config_entries.async_forward_entry_setups(entry, ENTRY_PLATFORMS)
     await equipment.async_start()
     await safety.async_start()
@@ -217,6 +221,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     runtime = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
     for key in (
+        "uvc_maintenance",
         "alarm_controller",
         "uvc_controller",
         "safety_controller",

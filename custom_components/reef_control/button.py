@@ -6,17 +6,26 @@ from homeassistant.const import STATE_UNKNOWN, STATE_UNAVAILABLE
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.util import dt as dt_util
 
+from .uvc_maintenance import uvc_maintenance_key
+
 from .const import (
     CONF_AQUARIUM_NAME,
     CONF_WATER_LEVEL_ENTITY,
     DOMAIN,
     VERSION,
     get_aquarium_name,
+    CONF_UVC_ENTITIES,
+    CONF_UVC_ENTITY,
+    get_entity_list,
 )
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    async_add_entities([ReefControlAlarmResetButton(hass, entry)])
+    uvc_entities = get_entity_list(entry.options, CONF_UVC_ENTITIES, CONF_UVC_ENTITY)
+    async_add_entities([ReefControlAlarmResetButton(hass, entry)] + [
+        ReefControlUvcLampReplaceButton(hass, entry, entity_id)
+        for entity_id in uvc_entities
+    ])
 
 
 class ReefControlAlarmResetButton(ButtonEntity):
@@ -118,3 +127,35 @@ class ReefControlAlarmResetButton(ButtonEntity):
         runtime["alarm_reset_status"] = status
         runtime["alarm_reset_at"] = dt_util.utcnow().isoformat()
         self.async_write_ha_state()
+
+
+class ReefControlUvcLampReplaceButton(ButtonEntity):
+    """Record physical lamp replacement for exactly one assigned UV-C unit."""
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:lightbulb-refresh-outline"
+
+    def __init__(self, hass, entry, uvc_entity_id):
+        self.hass = hass
+        self._entry = entry
+        self.uvc_entity_id = uvc_entity_id
+        self._attr_unique_id = f"{entry.entry_id}_uvc_lamp_replaced_{uvc_maintenance_key(uvc_entity_id)}"
+        self._attr_name = f"UV-C Brennerwechsel {uvc_entity_id.split('.', 1)[-1]}"
+
+    @property
+    def device_info(self):
+        return DeviceInfo(
+            identifiers={(DOMAIN, self._entry.entry_id)},
+            name=get_aquarium_name(self._entry),
+            manufacturer="Reef Control",
+            model="Reef Aquarium",
+            sw_version=VERSION,
+        )
+
+    @property
+    def extra_state_attributes(self):
+        return {"uvc_entity_id": self.uvc_entity_id, "action": "record_replacement"}
+
+    async def async_press(self):
+        manager = self.hass.data.get(DOMAIN, {}).get(self._entry.entry_id, {}).get("uvc_maintenance")
+        if manager:
+            await manager.async_record_replacement(self.uvc_entity_id)
